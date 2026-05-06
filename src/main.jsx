@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   ChevronRight,
   Download,
-  ExternalLink,
   Factory,
   Filter,
   HelpCircle,
@@ -23,12 +22,10 @@ import {
   Sparkles,
   Target,
   UserRound,
-  X,
 } from 'lucide-react';
 import { matrix } from './data/matrix.generated.js';
 import { materials } from './data/materials.js';
 import { cases } from './data/cases.js';
-import { productRegistry } from './data/productRegistry.generated.js';
 import './styles.css';
 
 const base = import.meta.env.BASE_URL;
@@ -54,11 +51,11 @@ const demoUsers = [
 ];
 
 const nav = [
-  { id: 'overview', label: 'Обзор', icon: Layers3 },
   { id: 'matrix', label: 'Матрица решений', icon: BarChart3 },
   { id: 'map', label: 'Карта направлений', icon: Map },
   { id: 'library', label: 'Материалы', icon: BookOpen },
   { id: 'cases', label: 'Кейсы', icon: BriefcaseBusiness },
+  { id: 'overview', label: 'Обзор', icon: Layers3 },
 ];
 
 const levelLabels = {
@@ -97,46 +94,6 @@ function roleInitials(role) {
 
 function assetHref(path) {
   return `${base}${path.replace(/^\//, '')}`;
-}
-
-function normalizeText(value) {
-  return value
-    .toLowerCase()
-    .replace(/ё/g, 'е')
-    .replace(/[^a-zа-я0-9]+/g, ' ')
-    .trim();
-}
-
-function solutionCandidates(solution) {
-  const inside = [...solution.matchAll(/\(([^)]+)\)/g)].flatMap((match) => match[1].split(','));
-  const outside = solution.replace(/\([^)]*\)/g, '').split(/[,+/]/);
-  return unique([...inside, ...outside, solution].map((item) => item.trim()).filter((item) => item.length > 2));
-}
-
-function registryMatches(solution) {
-  const candidates = solutionCandidates(solution).map(normalizeText).filter((item) => item.length > 2);
-  const matches = [];
-
-  for (const record of productRegistry) {
-    const vendor = normalizeText(record.vendor || '');
-    const name = normalizeText(record.name || '');
-    const found = candidates.some((candidate) => (
-      (vendor.length > 2 && (vendor === candidate || vendor.includes(candidate) || candidate.includes(vendor))) ||
-      (name.length > 2 && (name === candidate || name.includes(candidate)))
-    ));
-
-    if (found && (record.classes?.length || record.url)) {
-      matches.push(record);
-    }
-  }
-
-  const seen = new Set();
-  return matches.filter((record) => {
-    const key = `${record.vendor}-${record.name}-${record.url}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 3);
 }
 
 function App() {
@@ -229,13 +186,6 @@ function App() {
     }
   }
 
-  function clearSearch() {
-    setQuery('');
-    setSelectedLevel('');
-    setSelectedBlock('');
-    setSelectedRole('');
-  }
-
   function handleLogin(email, password) {
     const normalizedEmail = email.trim().toLowerCase();
     const user = demoUsers.find((item) => item.email.toLowerCase() === normalizedEmail && item.password === password);
@@ -285,11 +235,6 @@ function App() {
               onChange={(event) => handleGlobalSearch(event.target.value)}
               placeholder="Поиск по ролям, задачам, решениям и материалам"
             />
-            {query && (
-              <button type="button" onClick={clearSearch} aria-label="Очистить поиск" title="Очистить поиск">
-                <X size={16} />
-              </button>
-            )}
           </label>
           <a className="support-button" href="mailto:partners@axoft.ru" title="Запросить помощь" aria-label="Запросить помощь">
             <HelpCircle size={18} />
@@ -611,7 +556,11 @@ function MatrixView({
               <Column title="Что беспокоит" items={activeRow.pains} />
               <div>
                 <h4>Решение Axoft</h4>
-                <SolutionList solutions={activeRow.solutions} />
+                <div className="solution-tags">
+                  {activeRow.solutions.map((solution) => (
+                    <span key={solution}>{solution}</span>
+                  ))}
+                </div>
               </div>
               <Column title="Бизнес-результат" items={activeRow.results} positive />
             </div>
@@ -724,46 +673,6 @@ function Select({ label, value, onChange, options, optionLabels = {} }) {
         ))}
       </select>
     </label>
-  );
-}
-
-function SolutionList({ solutions }) {
-  return (
-    <div className="solution-list">
-      {solutions.map((solution) => {
-        const matches = registryMatches(solution);
-        const primaryUrl = matches.find((match) => match.url)?.url;
-
-        return (
-          <div className="solution-item" key={solution}>
-            {primaryUrl ? (
-              <a className="solution-title" href={primaryUrl} target="_blank" rel="noreferrer">
-                {solution}
-                <ExternalLink size={14} />
-              </a>
-            ) : (
-              <span className="solution-title">{solution}</span>
-            )}
-            {matches.length > 0 && (
-              <div className="solution-meta">
-                {matches.map((match) => (
-                  <div className="vendor-match" key={`${solution}-${match.vendor}-${match.name}`}>
-                    {match.url ? (
-                      <a href={match.url} target="_blank" rel="noreferrer">
-                        {match.vendor || match.name}
-                      </a>
-                    ) : (
-                      <strong>{match.vendor || match.name}</strong>
-                    )}
-                    {match.classes.length > 0 && <span>{match.classes.slice(0, 3).join('; ')}</span>}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
