@@ -30,6 +30,7 @@ import './styles.css';
 
 const base = import.meta.env.BASE_URL;
 const sessionKey = 'axoft-portal-user';
+const buildMarker = 'rollback-clean-2026-05-06';
 
 const demoUsers = [
   {
@@ -219,7 +220,7 @@ function App() {
 
   return (
     <>
-      <header className="app-header">
+      <header className="app-header" data-build={buildMarker}>
         <div className="topbar">
           <button className="brand" onClick={() => setPage('matrix')} aria-label="Открыть матрицу">
             <img src={assetHref('/assets/brand/axoft-logo.png')} alt="Axoft" />
