@@ -7,6 +7,7 @@ import {
   BriefcaseBusiness,
   Building2,
   CheckCircle2,
+  ChevronRight,
   Download,
   Factory,
   Filter,
@@ -14,6 +15,7 @@ import {
   Layers3,
   LockKeyhole,
   LogOut,
+  Mail,
   Map,
   Search,
   ShieldCheck,
@@ -49,12 +51,18 @@ const demoUsers = [
 ];
 
 const nav = [
-  { id: 'overview', label: 'Обзор', icon: Layers3 },
-  { id: 'map', label: 'Карта направлений', icon: Map },
   { id: 'matrix', label: 'Матрица решений', icon: BarChart3 },
+  { id: 'map', label: 'Карта направлений', icon: Map },
   { id: 'library', label: 'Материалы', icon: BookOpen },
   { id: 'cases', label: 'Кейсы', icon: BriefcaseBusiness },
+  { id: 'overview', label: 'Обзор', icon: Layers3 },
 ];
+
+const levelLabels = {
+  strategic: 'Стратегический уровень',
+  operational: 'Операционный уровень',
+  technical: 'Технический уровень',
+};
 
 const levelByBlock = {
   'Стратегическое управление': 'strategic',
@@ -97,8 +105,9 @@ function App() {
       return null;
     }
   });
-  const [page, setPage] = useState('overview');
+  const [page, setPage] = useState('matrix');
   const [query, setQuery] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState('');
   const [selectedBlock, setSelectedBlock] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const [materialCategory, setMaterialCategory] = useState('Все');
@@ -127,13 +136,14 @@ function App() {
   const filteredMatrix = useMemo(() => {
     const needle = query.toLowerCase().trim();
     return matrix.filter((item) => {
+      if (selectedLevel && (levelByBlock[item.block] || 'technical') !== selectedLevel) return false;
       if (selectedBlock && item.block !== selectedBlock) return false;
       if (selectedRole && item.role !== selectedRole) return false;
       if (!needle) return true;
       const haystack = [item.role, item.block, ...item.pains, ...item.solutions, ...item.results].join(' ').toLowerCase();
       return haystack.includes(needle);
     });
-  }, [query, selectedBlock, selectedRole]);
+  }, [query, selectedLevel, selectedBlock, selectedRole]);
 
   const filteredMaterials = useMemo(() => {
     const needle = query.toLowerCase().trim();
@@ -156,7 +166,15 @@ function App() {
   }, [query, caseDirection]);
 
   function openMatrix(block = '') {
+    setSelectedLevel('');
     setSelectedBlock(block);
+    setSelectedRole('');
+    setPage('matrix');
+  }
+
+  function openMatrixByLevel(level = '') {
+    setSelectedLevel(level);
+    setSelectedBlock('');
     setSelectedRole('');
     setPage('matrix');
   }
@@ -191,7 +209,7 @@ function App() {
   function handleLogout() {
     window.localStorage.removeItem(sessionKey);
     setCurrentUser(null);
-    setPage('overview');
+    setPage('matrix');
     setQuery('');
   }
 
@@ -203,7 +221,7 @@ function App() {
     <>
       <header className="app-header">
         <div className="topbar">
-          <button className="brand" onClick={() => setPage('overview')} aria-label="Открыть обзор">
+          <button className="brand" onClick={() => setPage('matrix')} aria-label="Открыть матрицу">
             <img src={assetHref('/assets/brand/axoft-logo.png')} alt="Axoft" />
           </button>
           <div className="portal-title">
@@ -218,9 +236,8 @@ function App() {
               placeholder="Поиск по ролям, задачам, решениям и материалам"
             />
           </label>
-          <a className="support-button" href="mailto:partners@axoft.ru">
+          <a className="support-button" href="mailto:partners@axoft.ru" title="Запросить помощь" aria-label="Запросить помощь">
             <HelpCircle size={18} />
-            <span>Запросить помощь</span>
           </a>
           <div className="user-menu" aria-label="Профиль пользователя">
             <span className="user-avatar">{roleInitials(currentUser.name)}</span>
@@ -233,59 +250,71 @@ function App() {
             </button>
           </div>
         </div>
-        <nav className="nav-tabs" aria-label="Разделы портала">
-          {nav.map(({ id, label, icon: Icon }) => (
-            <button key={id} className={page === id ? 'active' : ''} onClick={() => setPage(id)}>
-              <Icon size={17} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
       </header>
 
-      <main>
-        {page === 'overview' && (
-          <Overview
-            user={currentUser}
-            matrixCount={matrix.length}
-            blockCount={blocks.length}
-            materialCount={materials.length}
-            caseCount={cases.length}
-            onOpenMap={() => setPage('map')}
-            onOpenMatrix={() => openMatrix()}
-            onOpenLibrary={() => setPage('library')}
-          />
-        )}
-        {page === 'map' && <DirectionMap cards={mapCards} onOpenMatrix={openMatrix} />}
-        {page === 'matrix' && (
-          <MatrixView
-            blocks={blocks}
-            roles={roles}
-            rows={filteredMatrix}
-            selectedBlock={selectedBlock}
-            selectedRole={selectedRole}
-            setSelectedBlock={setSelectedBlock}
-            setSelectedRole={setSelectedRole}
-            total={matrix.length}
-          />
-        )}
-        {page === 'library' && (
-          <LibraryView
-            categories={materialCategories}
-            activeCategory={materialCategory}
-            setActiveCategory={setMaterialCategory}
-            materials={filteredMaterials}
-          />
-        )}
-        {page === 'cases' && (
-          <CasesView
-            directions={caseDirections}
-            activeDirection={caseDirection}
-            setActiveDirection={setCaseDirection}
-            cases={filteredCases}
-          />
-        )}
-      </main>
+      <div className="app-layout">
+        <aside className="sidebar">
+          <div className="sidebar-title">Разделы</div>
+          <nav className="side-nav" aria-label="Разделы портала">
+            {nav.map(({ id, label, icon: Icon }) => (
+              <button key={id} className={page === id ? 'active' : ''} onClick={() => setPage(id)}>
+                <Icon size={18} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </nav>
+          <a className="sidebar-help" href="mailto:partners@axoft.ru">
+            <Mail size={17} />
+            partners@axoft.ru
+          </a>
+        </aside>
+
+        <main>
+          {page === 'overview' && (
+            <Overview
+              user={currentUser}
+              matrixCount={matrix.length}
+              blockCount={blocks.length}
+              materialCount={materials.length}
+              caseCount={cases.length}
+              onOpenMap={() => setPage('map')}
+              onOpenMatrix={() => openMatrix()}
+              onOpenLibrary={() => setPage('library')}
+            />
+          )}
+          {page === 'map' && <DirectionMap cards={mapCards} onOpenMatrix={openMatrix} onOpenLevel={openMatrixByLevel} />}
+          {page === 'matrix' && (
+            <MatrixView
+              blocks={blocks}
+              roles={roles}
+              rows={filteredMatrix}
+              selectedLevel={selectedLevel}
+              selectedBlock={selectedBlock}
+              selectedRole={selectedRole}
+              setSelectedLevel={setSelectedLevel}
+              setSelectedBlock={setSelectedBlock}
+              setSelectedRole={setSelectedRole}
+              total={matrix.length}
+            />
+          )}
+          {page === 'library' && (
+            <LibraryView
+              categories={materialCategories}
+              activeCategory={materialCategory}
+              setActiveCategory={setMaterialCategory}
+              materials={filteredMaterials}
+            />
+          )}
+          {page === 'cases' && (
+            <CasesView
+              directions={caseDirections}
+              activeDirection={caseDirection}
+              setActiveDirection={setCaseDirection}
+              cases={filteredCases}
+            />
+          )}
+        </main>
+      </div>
     </>
   );
 }
@@ -405,13 +434,7 @@ function Overview({ user, matrixCount, blockCount, materialCount, caseCount, onO
   );
 }
 
-function DirectionMap({ cards, onOpenMatrix }) {
-  const labels = {
-    strategic: 'Стратегический уровень',
-    operational: 'Операционный уровень',
-    technical: 'Технический уровень',
-  };
-
+function DirectionMap({ cards, onOpenMatrix, onOpenLevel }) {
   return (
     <section className="page-shell">
       <PageTitle
@@ -420,16 +443,16 @@ function DirectionMap({ cards, onOpenMatrix }) {
         text="Выберите направление, чтобы сразу отфильтровать роли, задачи и решения в матрице."
       />
       <div className="legend">
-        {Object.entries(labels).map(([level, label]) => (
-          <span className={`legend-pill ${level}`} key={level}>
+        {Object.entries(levelLabels).map(([level, label]) => (
+          <button className={`legend-pill ${level}`} key={level} onClick={() => onOpenLevel(level)}>
             {label}
-          </span>
+          </button>
         ))}
       </div>
       <div className="map-grid">
         {cards.map((card) => (
           <button className={`direction-card ${card.level}`} key={card.block} onClick={() => onOpenMatrix(card.block)}>
-            <span>{labels[card.level]}</span>
+            <span>{levelLabels[card.level]}</span>
             <h3>{card.block}</h3>
             <p>{card.roles} роли в матрице</p>
             <div>
@@ -444,7 +467,47 @@ function DirectionMap({ cards, onOpenMatrix }) {
   );
 }
 
-function MatrixView({ blocks, roles, rows, selectedBlock, selectedRole, setSelectedBlock, setSelectedRole, total }) {
+function MatrixView({
+  blocks,
+  roles,
+  rows,
+  selectedLevel,
+  selectedBlock,
+  selectedRole,
+  setSelectedLevel,
+  setSelectedBlock,
+  setSelectedRole,
+  total,
+}) {
+  const [activeKey, setActiveKey] = useState('');
+  const activeRow = rows.find((row) => `${row.block}-${row.role}` === activeKey) || rows[0];
+
+  function chooseLevel(level) {
+    setSelectedLevel(level);
+    setSelectedBlock('');
+    setSelectedRole('');
+    setActiveKey('');
+  }
+
+  function chooseBlock(block) {
+    setSelectedBlock(block);
+    setSelectedLevel('');
+    setSelectedRole('');
+    setActiveKey('');
+  }
+
+  function chooseRole(role) {
+    setSelectedRole(role);
+    setActiveKey('');
+  }
+
+  function clearFilters() {
+    setSelectedLevel('');
+    setSelectedBlock('');
+    setSelectedRole('');
+    setActiveKey('');
+  }
+
   return (
     <section className="page-shell">
       <PageTitle
@@ -453,36 +516,56 @@ function MatrixView({ blocks, roles, rows, selectedBlock, selectedRole, setSelec
         text={`Показано ${rows.length} из ${total} строк. Фильтруйте по направлению или роли клиента.`}
       />
       <div className="filters">
-        <Select label="Направление" value={selectedBlock} onChange={setSelectedBlock} options={['', ...blocks]} />
-        <Select label="Роль клиента" value={selectedRole} onChange={setSelectedRole} options={['', ...roles]} />
-        {(selectedBlock || selectedRole) && (
-          <button className="clear-button" onClick={() => { setSelectedBlock(''); setSelectedRole(''); }}>
+        <Select label="Уровень" value={selectedLevel} onChange={chooseLevel} options={['', ...Object.keys(levelLabels)]} optionLabels={levelLabels} />
+        <Select label="Направление" value={selectedBlock} onChange={chooseBlock} options={['', ...blocks]} />
+        <Select label="Роль клиента" value={selectedRole} onChange={chooseRole} options={['', ...roles]} />
+        {(selectedLevel || selectedBlock || selectedRole) && (
+          <button className="clear-button" onClick={clearFilters}>
             Сбросить фильтры
           </button>
         )}
       </div>
-      <div className="matrix-list">
-        {rows.map((row) => (
-          <article className="matrix-card" key={`${row.block}-${row.role}`}>
+      <div className="matrix-workspace">
+        <div className="role-list" aria-label="Роли клиентов">
+          {rows.map((row) => {
+            const key = `${row.block}-${row.role}`;
+            const active = activeRow && key === `${activeRow.block}-${activeRow.role}`;
+            return (
+              <button className={active ? 'active' : ''} key={key} onClick={() => setActiveKey(key)}>
+                <span className="role-avatar small">{roleInitials(row.role)}</span>
+                <span>
+                  <strong>{row.role}</strong>
+                  <small>{row.block}</small>
+                </span>
+                <ChevronRight size={16} />
+              </button>
+            );
+          })}
+          {!rows.length && <div className="empty-state">Ничего не найдено. Попробуйте изменить фильтры или поиск.</div>}
+        </div>
+        {activeRow && (
+          <article className="matrix-detail">
             <div className="matrix-head">
-              <span className="role-avatar">{roleInitials(row.role)}</span>
+              <span className="role-avatar">{roleInitials(activeRow.role)}</span>
               <div>
-                <span className="block-label">{row.block}</span>
-                <h3>{row.role}</h3>
+                <span className="block-label">{activeRow.block}</span>
+                <h3>{activeRow.role}</h3>
               </div>
             </div>
-            <Column title="Что беспокоит" items={row.pains} />
-            <div>
-              <h4>Решение Axoft</h4>
-              <div className="solution-tags">
-                {row.solutions.map((solution) => (
-                  <span key={solution}>{solution}</span>
-                ))}
+            <div className="detail-grid">
+              <Column title="Что беспокоит" items={activeRow.pains} />
+              <div>
+                <h4>Решение Axoft</h4>
+                <div className="solution-tags">
+                  {activeRow.solutions.map((solution) => (
+                    <span key={solution}>{solution}</span>
+                  ))}
+                </div>
               </div>
+              <Column title="Бизнес-результат" items={activeRow.results} positive />
             </div>
-            <Column title="Бизнес-результат" items={row.results} positive />
           </article>
-        ))}
+        )}
       </div>
     </section>
   );
@@ -575,7 +658,7 @@ function PageTitle({ icon: Icon, title, text }) {
   );
 }
 
-function Select({ label, value, onChange, options }) {
+function Select({ label, value, onChange, options, optionLabels = {} }) {
   return (
     <label className="select-wrap">
       <span>
@@ -585,7 +668,7 @@ function Select({ label, value, onChange, options }) {
       <select value={value} onChange={(event) => onChange(event.target.value)}>
         {options.map((option) => (
           <option key={option || 'all'} value={option}>
-            {option || 'Все'}
+            {option ? optionLabels[option] || option : 'Все'}
           </option>
         ))}
       </select>
