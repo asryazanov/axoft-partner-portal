@@ -17,6 +17,7 @@ import {
   LogOut,
   Mail,
   Map,
+  RotateCcw,
   Search,
   ShieldCheck,
   Sparkles,
@@ -482,6 +483,7 @@ function MatrixView({
 }) {
   const [activeKey, setActiveKey] = useState('');
   const activeRow = rows.find((row) => `${row.block}-${row.role}` === activeKey) || rows[0];
+  const hasFilters = Boolean(selectedLevel || selectedBlock || selectedRole);
 
   function chooseLevel(level) {
     setSelectedLevel(level);
@@ -520,11 +522,10 @@ function MatrixView({
         <Select label="Уровень" value={selectedLevel} onChange={chooseLevel} options={['', ...Object.keys(levelLabels)]} optionLabels={levelLabels} />
         <Select label="Направление" value={selectedBlock} onChange={chooseBlock} options={['', ...blocks]} />
         <Select label="Роль клиента" value={selectedRole} onChange={chooseRole} options={['', ...roles]} />
-        {(selectedLevel || selectedBlock || selectedRole) && (
-          <button className="clear-button" onClick={clearFilters}>
-            Сбросить фильтры
-          </button>
-        )}
+        <button className="clear-button" onClick={clearFilters} disabled={!hasFilters}>
+          <RotateCcw size={17} />
+          Сбросить фильтры
+        </button>
       </div>
       <div className="matrix-workspace">
         <div className="role-list" aria-label="Роли клиентов">
@@ -553,9 +554,14 @@ function MatrixView({
                 <h3>{activeRow.role}</h3>
               </div>
             </div>
+            <div className="matrix-summary">
+              <span>{activeRow.pains.length} задачи</span>
+              <span>{activeRow.solutions.length} решений</span>
+              <span>{activeRow.results.length} результата</span>
+            </div>
             <div className="detail-grid">
               <Column title="Что беспокоит" items={activeRow.pains} />
-              <div>
+              <div className="detail-section solution-section">
                 <h4>Решение Axoft</h4>
                 <div className="solution-tags">
                   {activeRow.solutions.map((solution) => (
@@ -679,7 +685,7 @@ function Select({ label, value, onChange, options, optionLabels = {} }) {
 
 function Column({ title, items, positive = false }) {
   return (
-    <div>
+    <div className={`detail-section ${positive ? 'result-section' : ''}`}>
       <h4>{title}</h4>
       <ul className={positive ? 'positive-list' : 'plain-list'}>
         {items.filter(Boolean).map((item) => (
