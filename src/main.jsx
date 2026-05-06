@@ -9,16 +9,17 @@ import {
   CheckCircle2,
   Download,
   Factory,
-  FileText,
   Filter,
   HelpCircle,
   Layers3,
+  LockKeyhole,
+  LogOut,
   Map,
   Search,
   ShieldCheck,
   Sparkles,
-  Star,
   Target,
+  UserRound,
 } from 'lucide-react';
 import { matrix } from './data/matrix.generated.js';
 import { materials } from './data/materials.js';
@@ -26,6 +27,26 @@ import { cases } from './data/cases.js';
 import './styles.css';
 
 const base = import.meta.env.BASE_URL;
+const sessionKey = 'axoft-portal-user';
+
+const demoUsers = [
+  {
+    id: 'partner',
+    name: 'Партнер Axoft',
+    email: 'partner@demo.ru',
+    password: 'partner',
+    role: 'Партнер',
+    company: 'Демо-партнер',
+  },
+  {
+    id: 'am',
+    name: 'Axoft AM',
+    email: 'am@axoft.ru',
+    password: 'axoft',
+    role: 'Axoft AM',
+    company: 'Axoft',
+  },
+];
 
 const nav = [
   { id: 'overview', label: 'Обзор', icon: Layers3 },
@@ -68,6 +89,14 @@ function assetHref(path) {
 }
 
 function App() {
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const stored = window.localStorage.getItem(sessionKey);
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
   const [page, setPage] = useState('overview');
   const [query, setQuery] = useState('');
   const [selectedBlock, setSelectedBlock] = useState('');
@@ -139,6 +168,37 @@ function App() {
     }
   }
 
+  function handleLogin(email, password) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = demoUsers.find((item) => item.email.toLowerCase() === normalizedEmail && item.password === password);
+
+    if (!user) {
+      return 'Проверьте логин и пароль. Для демо используйте partner@demo.ru / partner или am@axoft.ru / axoft.';
+    }
+
+    const sessionUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      company: user.company,
+    };
+    window.localStorage.setItem(sessionKey, JSON.stringify(sessionUser));
+    setCurrentUser(sessionUser);
+    return '';
+  }
+
+  function handleLogout() {
+    window.localStorage.removeItem(sessionKey);
+    setCurrentUser(null);
+    setPage('overview');
+    setQuery('');
+  }
+
+  if (!currentUser) {
+    return <AuthScreen onLogin={handleLogin} />;
+  }
+
   return (
     <>
       <header className="app-header">
@@ -162,6 +222,16 @@ function App() {
             <HelpCircle size={18} />
             <span>Запросить помощь</span>
           </a>
+          <div className="user-menu" aria-label="Профиль пользователя">
+            <span className="user-avatar">{roleInitials(currentUser.name)}</span>
+            <div>
+              <strong>{currentUser.name}</strong>
+              <span>{currentUser.role}</span>
+            </div>
+            <button onClick={handleLogout} title="Выйти" aria-label="Выйти">
+              <LogOut size={17} />
+            </button>
+          </div>
         </div>
         <nav className="nav-tabs" aria-label="Разделы портала">
           {nav.map(({ id, label, icon: Icon }) => (
@@ -176,6 +246,7 @@ function App() {
       <main>
         {page === 'overview' && (
           <Overview
+            user={currentUser}
             matrixCount={matrix.length}
             blockCount={blocks.length}
             materialCount={materials.length}
@@ -219,14 +290,70 @@ function App() {
   );
 }
 
-function Overview({ matrixCount, blockCount, materialCount, caseCount, onOpenMap, onOpenMatrix, onOpenLibrary }) {
+function AuthScreen({ onLogin }) {
+  const [email, setEmail] = useState('partner@demo.ru');
+  const [password, setPassword] = useState('partner');
+  const [error, setError] = useState('');
+
+  function submit(event) {
+    event.preventDefault();
+    setError(onLogin(email, password));
+  }
+
+  function fillDemo(user) {
+    setEmail(user.email);
+    setPassword(user.password);
+    setError('');
+  }
+
+  return (
+    <main className="auth-page">
+      <section className="auth-shell">
+        <div className="auth-brand">
+          <img src={assetHref('/assets/brand/axoft-logo.png')} alt="Axoft" />
+          <span>
+            <LockKeyhole size={17} />
+            Закрытый прототип портала
+          </span>
+          <h1>Войдите в партнёрский портал Axoft</h1>
+          <p>Демо-авторизация защищает интерфейс и показывает разные контексты для партнера и Axoft AM.</p>
+        </div>
+        <form className="auth-form" onSubmit={submit}>
+          <h2>Авторизация</h2>
+          <label>
+            Email
+            <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="username" />
+          </label>
+          <label>
+            Пароль
+            <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="current-password" />
+          </label>
+          {error && <p className="auth-error">{error}</p>}
+          <button className="primary-action" type="submit">
+            Войти <ArrowRight size={18} />
+          </button>
+          <div className="demo-logins">
+            {demoUsers.map((user) => (
+              <button type="button" key={user.id} onClick={() => fillDemo(user)}>
+                <UserRound size={16} />
+                {user.role}
+              </button>
+            ))}
+          </div>
+        </form>
+      </section>
+    </main>
+  );
+}
+
+function Overview({ user, matrixCount, blockCount, materialCount, caseCount, onOpenMap, onOpenMatrix, onOpenLibrary }) {
   return (
     <section className="overview">
       <div className="hero">
         <div className="hero-copy">
           <span className="eyebrow">
             <Sparkles size={16} />
-            Для партнеров и команд Axoft AM
+            {user.role}: {user.company}
           </span>
           <h1>Быстро подбирайте решения Axoft по роли, задаче и бизнес-результату клиента</h1>
           <p>
