@@ -34,6 +34,7 @@ import {
 import { matrix } from './data/matrix.generated.js';
 import { materials as initialMaterials } from './data/materials.js';
 import { cases as initialCases } from './data/cases.js';
+import { caseIndustryDictionary } from './data/caseDictionaries.js';
 import './styles.css';
 
 const base = import.meta.env.BASE_URL;
@@ -279,6 +280,15 @@ function normalizeCase(form) {
 
 function caseModuleSource(items) {
   return `export const cases = ${JSON.stringify(items, null, 2)};\n`;
+}
+
+function dictionaryValues(field, filters = {}) {
+  return unique(
+    caseIndustryDictionary
+      .filter((item) => !filters.industry || item.industry === filters.industry)
+      .filter((item) => !filters.subIndustry || item.subIndustry === filters.subIndustry)
+      .map((item) => item[field]),
+  );
 }
 
 function encodeBase64(text) {
@@ -1193,6 +1203,23 @@ function AdminCases({ initialItems, materials, onLocalUpdate }) {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function updateIndustry(value) {
+    setForm((current) => ({
+      ...current,
+      industry: value,
+      subIndustry: '',
+      segment: '',
+    }));
+  }
+
+  function updateSubIndustry(value) {
+    setForm((current) => ({
+      ...current,
+      subIndustry: value,
+      segment: '',
+    }));
+  }
+
   function selectCase(item) {
     setSelectedId(item.id);
     setForm(caseToForm(item));
@@ -1312,6 +1339,12 @@ function AdminCases({ initialItems, materials, onLocalUpdate }) {
     }
   }
 
+  const industryOptions = dictionaryValues('industry');
+  const subIndustryOptions = form.industry ? dictionaryValues('subIndustry', { industry: form.industry }) : [];
+  const segmentOptions = form.industry && form.subIndustry
+    ? dictionaryValues('segment', { industry: form.industry, subIndustry: form.subIndustry })
+    : [];
+
   return (
     <div className="admin-grid">
       <div className="admin-list">
@@ -1389,15 +1422,30 @@ function AdminCases({ initialItems, materials, onLocalUpdate }) {
           </label>
           <label>
             Отрасль
-            <input value={form.industry} onChange={(event) => updateField('industry', event.target.value)} />
+            <select value={form.industry} onChange={(event) => updateIndustry(event.target.value)}>
+              <option value="">Выберите отрасль</option>
+              {industryOptions.map((industry) => (
+                <option key={industry} value={industry}>{industry}</option>
+              ))}
+            </select>
           </label>
           <label>
             Подотрасль
-            <input value={form.subIndustry} onChange={(event) => updateField('subIndustry', event.target.value)} />
+            <select value={form.subIndustry} onChange={(event) => updateSubIndustry(event.target.value)} disabled={!form.industry}>
+              <option value="">Выберите подотрасль</option>
+              {subIndustryOptions.map((subIndustry) => (
+                <option key={subIndustry} value={subIndustry}>{subIndustry}</option>
+              ))}
+            </select>
           </label>
           <label>
             Сегмент
-            <input value={form.segment} onChange={(event) => updateField('segment', event.target.value)} />
+            <select value={form.segment} onChange={(event) => updateField('segment', event.target.value)} disabled={!form.subIndustry}>
+              <option value="">Выберите сегмент</option>
+              {segmentOptions.map((segment) => (
+                <option key={segment} value={segment}>{segment}</option>
+              ))}
+            </select>
           </label>
           <label>
             Масштаб
