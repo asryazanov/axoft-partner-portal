@@ -11,28 +11,41 @@ import {
   Download,
   Factory,
   Filter,
+  Github,
   HelpCircle,
   Layers3,
   LockKeyhole,
   LogOut,
   Mail,
   Map,
+  Pencil,
+  Plus,
   RotateCcw,
+  Save,
   Search,
   ShieldCheck,
   Sparkles,
   Target,
+  Trash2,
+  Upload,
   UserRound,
   X,
 } from 'lucide-react';
 import { matrix } from './data/matrix.generated.js';
-import { materials } from './data/materials.js';
+import { materials as initialMaterials } from './data/materials.js';
 import { cases } from './data/cases.js';
 import './styles.css';
 
 const base = import.meta.env.BASE_URL;
 const sessionKey = 'axoft-portal-user';
 const buildMarker = 'rollback-clean-2026-05-06';
+const githubConfig = {
+  owner: 'asryazanov',
+  repo: 'axoft-partner-portal',
+  branch: 'main',
+  materialsPath: 'src/data/materials.js',
+  assetsPath: 'public/assets/materials',
+};
 
 const demoUsers = [
   {
@@ -51,15 +64,25 @@ const demoUsers = [
     role: 'Axoft AM',
     company: 'Axoft',
   },
+  {
+    id: 'admin',
+    name: 'Администратор',
+    email: 'admin@axoft.ru',
+    password: 'admin',
+    role: 'Администратор',
+    company: 'Axoft',
+    isAdmin: true,
+  },
 ];
 
-const nav = [
+const baseNav = [
   { id: 'matrix', label: 'Матрица решений', icon: BarChart3 },
   { id: 'map', label: 'Карта направлений', icon: Map },
   { id: 'library', label: 'Материалы', icon: BookOpen },
   { id: 'cases', label: 'Кейсы', icon: BriefcaseBusiness },
   { id: 'overview', label: 'Обзор', icon: Layers3 },
 ];
+const adminNav = { id: 'admin', label: 'Админка', icon: Github };
 
 const levelLabels = {
   strategic: 'Стратегический уровень',
@@ -99,6 +122,100 @@ function assetHref(path) {
   return `${base}${path.replace(/^\//, '')}`;
 }
 
+function emptyMaterial() {
+  return {
+    id: '',
+    title: '',
+    description: '',
+    format: 'PDF',
+    version: '',
+    category: '',
+    tagsText: '',
+    href: '',
+  };
+}
+
+function normalizeMaterial(form) {
+  return {
+    id: form.id.trim(),
+    title: form.title.trim(),
+    description: form.description.trim(),
+    format: form.format.trim().toUpperCase(),
+    version: form.version.trim(),
+    category: form.category.trim(),
+    tags: form.tagsText
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean),
+    href: form.href.trim(),
+  };
+}
+
+function materialToForm(material) {
+  return {
+    ...material,
+    tagsText: material.tags.join(', '),
+  };
+}
+
+function materialModuleSource(items) {
+  return `export const materials = ${JSON.stringify(items, null, 2)};\n`;
+}
+
+function encodeBase64(text) {
+  return btoa(unescape(encodeURIComponent(text)));
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function slugifyFileName(name) {
+  const dot = name.lastIndexOf('.');
+  const extension = dot >= 0 ? name.slice(dot).toLowerCase() : '';
+  const baseName = (dot >= 0 ? name.slice(0, dot) : name)
+    .toLowerCase()
+    .replace(/[^a-z0-9а-яё]+/gi, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+  return `${baseName || 'material'}${extension}`;
+}
+
+async function githubRequest(path, token, options = {}) {
+  const response = await fetch(`https://api.github.com/repos/${githubConfig.owner}/${githubConfig.repo}/contents/${path}`, {
+    ...options,
+    headers: {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${token}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+      ...(options.headers || {}),
+    },
+  });
+
+  if (!response.ok) {
+    const details = await response.json().catch(() => ({}));
+    throw new Error(details.message || `GitHub API: ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+async function getGithubSha(path, token) {
+  try {
+    const file = await githubRequest(`${path}?ref=${githubConfig.branch}`, token);
+    return file.sha;
+  } catch (error) {
+    if (String(error.message).includes('Not Found')) return '';
+    throw error;
+  }
+}
+
 function App() {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
@@ -115,11 +232,13 @@ function App() {
   const [selectedRole, setSelectedRole] = useState('');
   const [materialCategory, setMaterialCategory] = useState('Все');
   const [caseDirection, setCaseDirection] = useState('Все');
+  const [materialStore, setMaterialStore] = useState(initialMaterials);
 
   const blocks = useMemo(() => unique(matrix.map((item) => item.block)), []);
   const roles = useMemo(() => unique(matrix.map((item) => item.role)), []);
-  const materialCategories = useMemo(() => ['Все', ...unique(materials.map((item) => item.category))], []);
+  const materialCategories = useMemo(() => ['Все', ...unique(materialStore.map((item) => item.category))], [materialStore]);
   const caseDirections = useMemo(() => ['Все', ...unique(cases.map((item) => item.direction))], []);
+  const nav = currentUser?.isAdmin ? [...baseNav, adminNav] : baseNav;
 
   const mapCards = useMemo(
     () =>
@@ -150,13 +269,13 @@ function App() {
 
   const filteredMaterials = useMemo(() => {
     const needle = query.toLowerCase().trim();
-    return materials.filter((item) => {
+    return materialStore.filter((item) => {
       if (materialCategory !== 'Все' && item.category !== materialCategory) return false;
       if (!needle) return true;
       const haystack = [item.title, item.description, item.category, ...item.tags].join(' ').toLowerCase();
       return haystack.includes(needle);
     });
-  }, [query, materialCategory]);
+  }, [query, materialCategory, materialStore]);
 
   const filteredCases = useMemo(() => {
     const needle = query.toLowerCase().trim();
@@ -194,7 +313,7 @@ function App() {
     const user = demoUsers.find((item) => item.email.toLowerCase() === normalizedEmail && item.password === password);
 
     if (!user) {
-      return 'Проверьте логин и пароль. Для демо используйте partner@demo.ru / partner или am@axoft.ru / axoft.';
+      return 'Проверьте логин и пароль. Для демо используйте partner@demo.ru / partner, am@axoft.ru / axoft или admin@axoft.ru / admin.';
     }
 
     const sessionUser = {
@@ -203,6 +322,7 @@ function App() {
       email: user.email,
       role: user.role,
       company: user.company,
+      isAdmin: Boolean(user.isAdmin),
     };
     window.localStorage.setItem(sessionKey, JSON.stringify(sessionUser));
     setCurrentUser(sessionUser);
@@ -278,7 +398,7 @@ function App() {
               user={currentUser}
               matrixCount={matrix.length}
               blockCount={blocks.length}
-              materialCount={materials.length}
+              materialCount={materialStore.length}
               caseCount={cases.length}
               onOpenMap={() => setPage('map')}
               onOpenMatrix={() => openMatrix()}
@@ -308,6 +428,7 @@ function App() {
               materials={filteredMaterials}
             />
           )}
+          {page === 'admin' && currentUser.isAdmin && <AdminMaterials initialItems={materialStore} onLocalUpdate={setMaterialStore} />}
           {page === 'cases' && (
             <CasesView
               directions={caseDirections}
@@ -599,6 +720,268 @@ function MatrixView({
             </div>
           </article>
         )}
+      </div>
+    </section>
+  );
+}
+
+function AdminMaterials({ initialItems, onLocalUpdate }) {
+  const [items, setItems] = useState(initialItems);
+  const [form, setForm] = useState(() => emptyMaterial());
+  const [selectedId, setSelectedId] = useState('');
+  const [token, setToken] = useState('');
+  const [file, setFile] = useState(null);
+  const [deletedHrefs, setDeletedHrefs] = useState([]);
+  const [status, setStatus] = useState({ type: '', text: '' });
+  const [saving, setSaving] = useState(false);
+  const isEditing = Boolean(selectedId);
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function selectMaterial(material) {
+    setSelectedId(material.id);
+    setForm(materialToForm(material));
+    setFile(null);
+    setStatus({ type: '', text: '' });
+  }
+
+  function createMaterial() {
+    setSelectedId('');
+    setForm(emptyMaterial());
+    setFile(null);
+    setStatus({ type: '', text: '' });
+  }
+
+  function validate(material) {
+    if (!material.id) return 'Заполните ID материала.';
+    if (!material.title) return 'Заполните название.';
+    if (!material.description) return 'Заполните описание.';
+    if (!material.category) return 'Заполните категорию.';
+    if (!material.version) return 'Заполните версию.';
+    if (!material.href && !file) return 'Добавьте файл или укажите ссылку на файл.';
+    return '';
+  }
+
+  function upsertLocal(event) {
+    event.preventDefault();
+    const material = normalizeMaterial(form);
+    const error = validate(material);
+
+    if (error) {
+      setStatus({ type: 'error', text: error });
+      return null;
+    }
+
+    const next = items.some((item) => item.id === selectedId || item.id === material.id)
+      ? items.map((item) => (item.id === selectedId || item.id === material.id ? material : item))
+      : [...items, material];
+
+    setItems(next);
+    onLocalUpdate(next);
+    setSelectedId(material.id);
+    setStatus({ type: 'success', text: 'Материал обновлён в текущем списке. Для публикации сохраните изменения в GitHub.' });
+    return { material, next };
+  }
+
+  function removeMaterial(material) {
+    const next = items.filter((item) => item.id !== material.id);
+    setItems(next);
+    onLocalUpdate(next);
+    setDeletedHrefs((current) => (material.href.startsWith('/assets/materials/') ? [...current, material.href] : current));
+    if (selectedId === material.id) createMaterial();
+    setStatus({ type: 'success', text: 'Материал удалён из текущего списка. Для публикации сохраните изменения в GitHub.' });
+  }
+
+  async function putGithubFile(path, content, message, sha = '') {
+    return githubRequest(path, token.trim(), {
+      method: 'PUT',
+      body: JSON.stringify({
+        message,
+        content,
+        branch: githubConfig.branch,
+        ...(sha ? { sha } : {}),
+      }),
+    });
+  }
+
+  async function deleteGithubFile(path, message) {
+    const sha = await getGithubSha(path, token.trim());
+    if (!sha) return;
+    await githubRequest(path, token.trim(), {
+      method: 'DELETE',
+      body: JSON.stringify({
+        message,
+        sha,
+        branch: githubConfig.branch,
+      }),
+    });
+  }
+
+  async function publishToGithub() {
+    if (!token.trim()) {
+      setStatus({ type: 'error', text: 'Вставьте GitHub token с правом Contents: read/write.' });
+      return;
+    }
+
+    setSaving(true);
+    setStatus({ type: '', text: '' });
+
+    try {
+      let nextItems = items;
+      let material = normalizeMaterial(form);
+      const error = validate(material);
+
+      if (!error) {
+        if (file) {
+          const fileName = slugifyFileName(file.name);
+          const assetPath = `${githubConfig.assetsPath}/${fileName}`;
+          const assetSha = await getGithubSha(assetPath, token.trim());
+          await putGithubFile(assetPath, await fileToBase64(file), `Upload material ${fileName}`, assetSha);
+          material = { ...material, href: `/assets/materials/${fileName}`, format: fileName.split('.').pop().toUpperCase() };
+          setForm(materialToForm(material));
+        }
+
+        nextItems = items.some((item) => item.id === selectedId || item.id === material.id)
+          ? items.map((item) => (item.id === selectedId || item.id === material.id ? material : item))
+          : [...items, material];
+      }
+
+      for (const href of deletedHrefs) {
+        await deleteGithubFile(`public${href}`, `Delete material asset ${href.split('/').pop()}`);
+      }
+
+      const materialsSha = await getGithubSha(githubConfig.materialsPath, token.trim());
+      await putGithubFile(
+        githubConfig.materialsPath,
+        encodeBase64(materialModuleSource(nextItems)),
+        'Update portal materials',
+        materialsSha,
+      );
+
+      setItems(nextItems);
+      onLocalUpdate(nextItems);
+      setDeletedHrefs([]);
+      setFile(null);
+      setStatus({ type: 'success', text: 'Изменения сохранены в GitHub. GitHub Pages обновится после завершения workflow.' });
+    } catch (error) {
+      setStatus({ type: 'error', text: error.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="page-shell">
+      <PageTitle icon={Github} title="Админка материалов" text="Управляйте карточками материалов и публикуйте изменения в GitHub." />
+      <div className="admin-grid">
+        <div className="admin-list">
+          <div className="admin-toolbar">
+            <strong>Материалы</strong>
+            <button onClick={createMaterial}>
+              <Plus size={16} />
+              Добавить
+            </button>
+          </div>
+          {items.map((item) => (
+            <button key={item.id} className={selectedId === item.id ? 'active' : ''} onClick={() => selectMaterial(item)}>
+              <span>
+                <strong>{item.title}</strong>
+                <small>{item.category} · {item.format} · {item.version}</small>
+              </span>
+              <Pencil size={15} />
+            </button>
+          ))}
+        </div>
+
+        <form className="admin-editor" onSubmit={upsertLocal}>
+          <div className="admin-editor-head">
+            <div>
+              <span>{isEditing ? 'Редактирование' : 'Новый материал'}</span>
+              <h3>{form.title || 'Карточка материала'}</h3>
+            </div>
+            {isEditing && (
+              <button type="button" className="danger-button" onClick={() => removeMaterial(items.find((item) => item.id === selectedId) || normalizeMaterial(form))}>
+                <Trash2 size={16} />
+                Удалить
+              </button>
+            )}
+          </div>
+
+          <div className="admin-form-grid">
+            <label>
+              ID
+              <input value={form.id} onChange={(event) => updateField('id', event.target.value)} placeholder="material-id" />
+            </label>
+            <label>
+              Формат
+              <select value={form.format} onChange={(event) => updateField('format', event.target.value)}>
+                {['PDF', 'PPTX', 'DOCX', 'XLSX', 'ZIP', 'LINK'].map((format) => (
+                  <option key={format} value={format}>{format}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Название
+              <input value={form.title} onChange={(event) => updateField('title', event.target.value)} />
+            </label>
+            <label>
+              Версия
+              <input value={form.version} onChange={(event) => updateField('version', event.target.value)} />
+            </label>
+            <label>
+              Категория
+              <input value={form.category} onChange={(event) => updateField('category', event.target.value)} />
+            </label>
+            <label>
+              Теги через запятую
+              <input value={form.tagsText} onChange={(event) => updateField('tagsText', event.target.value)} />
+            </label>
+            <label className="wide-field">
+              Описание
+              <textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} rows={4} />
+            </label>
+            <label className="wide-field">
+              Ссылка на файл
+              <input value={form.href} onChange={(event) => updateField('href', event.target.value)} placeholder="/assets/materials/file.pdf" />
+            </label>
+            <label className="wide-field file-field">
+              <Upload size={18} />
+              <span>{file ? file.name : 'Загрузить новый файл материала'}</span>
+              <input
+                type="file"
+                onChange={(event) => {
+                  const nextFile = event.target.files?.[0] || null;
+                  setFile(nextFile);
+                  if (nextFile) {
+                    updateField('href', `/assets/materials/${slugifyFileName(nextFile.name)}`);
+                    updateField('format', nextFile.name.split('.').pop().toUpperCase());
+                  }
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="github-box">
+            <label>
+              GitHub token
+              <input value={token} onChange={(event) => setToken(event.target.value)} type="password" placeholder="Fine-grained token: Contents read/write" />
+            </label>
+            <div className="admin-actions">
+              <button type="submit" className="secondary-admin-button">
+                <Save size={16} />
+                Сохранить в список
+              </button>
+              <button type="button" className="primary-admin-button" onClick={publishToGithub} disabled={saving}>
+                <Github size={16} />
+                {saving ? 'Публикация...' : 'Сохранить в GitHub'}
+              </button>
+            </div>
+          </div>
+
+          {status.text && <p className={`admin-status ${status.type}`}>{status.text}</p>}
+        </form>
       </div>
     </section>
   );
