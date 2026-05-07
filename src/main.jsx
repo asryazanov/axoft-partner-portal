@@ -282,6 +282,40 @@ function caseModuleSource(items) {
   return `export const cases = ${JSON.stringify(items, null, 2)};\n`;
 }
 
+const caseFieldHints = {
+  id: 'Технический идентификатор кейса для хранения в GitHub. Используйте латиницу, цифры и дефисы, например mes-mining-exemes.',
+  status: 'Черновик не показывается партнёрам. Опубликовано видно в разделе кейсов. Скрыто временно убирает кейс из публичного каталога.',
+  confidentiality: 'Укажите режим использования кейса: публичный, закрытый под NDA или анонимизированный. Перед публикацией убедитесь, что есть разрешение заказчика.',
+  isAnonymized: 'Включите, если название заказчика или чувствительные детали заменены обобщениями. Для закрытых кейсов под NDA это обычно обязательный режим.',
+  title: 'Краткое, ёмкое название проекта/решения. Название должно отражать суть решения в 5-10 словах.',
+  company: 'Для публичных кейсов укажите полное официальное название только при наличии разрешения. Для NDA-кейсов используйте обобщение: крупная горнодобывающая компания, нефтехимический комбинат и т.д.',
+  region: 'Основной регион деятельности или регион реализации проекта.',
+  industry: 'Выберите основную отрасль из справочника. От отрасли зависят доступные подотрасли.',
+  subIndustry: 'Выберите подотрасль из справочника после выбора отрасли.',
+  segment: 'Выберите сегмент из справочника после выбора подотрасли.',
+  scale: 'Ключевой масштаб проекта: количество пользователей, объектов, площадок, рабочих мест, объём данных и т.д.',
+  period: 'Дата начала и завершения проекта или диапазон лет, например 2022-2026.',
+  solution: 'Класс или тип решения, по которому партнёр будет искать кейс: MES, WMS, BI, SCADA, ИБ и т.д.',
+  vendorsText: 'Укажите вендоров через запятую. Для этого портала важно быстро найти кейс по вендору, который был внедрён.',
+  productsText: 'Укажите продукты или платформы через запятую. Если продукт совпадает с вендором, можно повторить его здесь.',
+  tagsText: 'Теги через запятую: отрасль, сценарий, технология, ключевой эффект. Они помогают поиску и быстрому сканированию.',
+  customerDescription: 'Сфера деятельности, размер и основные направления заказчика. Не добавляйте персональные данные и конфиденциальные детали без разрешения.',
+  summary: 'Суть проекта и основной результат в 2-3 предложениях. Сосредоточьтесь на главном результате и выгоде для заказчика.',
+  goalsText: 'Основная цель и задачи проекта. Задачи лучше писать как конкретные шаги для достижения цели.',
+  problemText: 'Опишите проблемы и вызовы до проекта, а также их влияние на бизнес. Хорошо работают конкретные примеры и цифры.',
+  implementationText: 'Опишите, как было реализовано решение: компоненты, архитектура, интеграции, нестандартные доработки.',
+  projectScaleText: 'Перечислите масштаб: пользователи, филиалы, площадки, объёмы данных, интеграции, производственные объекты.',
+  resultsText: 'Что было достигнуто в результате проекта. Укажите выгоды для заказчика: сокращение затрат, рост производительности, снижение ошибок.',
+  technologiesText: 'Технологии и интеграции через запятую: API, ERP, 1С, протоколы, платформы, инфраструктурные компоненты.',
+  realizationScale: 'Масштаб реализации: локальный, региональный, федеральный или международный.',
+  result: 'Короткий результат для карточки кейса. Лучше использовать конкретный бизнес-эффект, который партнёр увидит в списке.',
+  sourceName: 'Название публичного источника или компании, чей публичный кейс можно показать партнёру.',
+  sourceUrl: 'Ссылка на публичный кейс, статью, страницу проекта или другой источник. Не добавляйте закрытые ссылки.',
+  relatedMaterialsText: 'ID связанных материалов из библиотеки через запятую. Они появятся в карточке кейса как дополнительные материалы.',
+  attachmentsText: 'Одна строка на приложение: название | ссылка | формат. Можно указать презентации, статьи, видео, схемы, диаграммы.',
+  file: 'Прикрепите PDF, XLSX, PPTX или другой файл к кейсу. Файл будет загружен в GitHub при публикации.',
+};
+
 function dictionaryValues(field, filters = {}) {
   return unique(
     caseIndustryDictionary
@@ -1383,154 +1417,219 @@ function AdminCases({ initialItems, materials, onLocalUpdate }) {
         <div className="admin-form-grid">
           <label>
             ID
-            <input value={form.id} onChange={(event) => updateField('id', event.target.value)} placeholder="case-id" />
+            <ControlWithHint hint={caseFieldHints.id}>
+              <input value={form.id} onChange={(event) => updateField('id', event.target.value)} placeholder="case-id" />
+            </ControlWithHint>
           </label>
           <label>
             Статус
-            <select value={form.status} onChange={(event) => updateField('status', event.target.value)}>
-              <option value="draft">Черновик</option>
-              <option value="published">Опубликовано</option>
-              <option value="hidden">Скрыто</option>
-            </select>
+            <ControlWithHint hint={caseFieldHints.status}>
+              <select value={form.status} onChange={(event) => updateField('status', event.target.value)}>
+                <option value="draft">Черновик</option>
+                <option value="published">Опубликовано</option>
+                <option value="hidden">Скрыто</option>
+              </select>
+            </ControlWithHint>
           </label>
           <label>
             Конфиденциальность
-            <select value={form.confidentiality} onChange={(event) => updateField('confidentiality', event.target.value)}>
-              <option value="public">Публичный</option>
-              <option value="nda">Закрытый под NDA</option>
-              <option value="anonymized">Анонимизированный</option>
-            </select>
+            <ControlWithHint hint={caseFieldHints.confidentiality}>
+              <select value={form.confidentiality} onChange={(event) => updateField('confidentiality', event.target.value)}>
+                <option value="public">Публичный</option>
+                <option value="nda">Закрытый под NDA</option>
+                <option value="anonymized">Анонимизированный</option>
+              </select>
+            </ControlWithHint>
           </label>
           <label>
             Анонимизация
-            <select value={form.isAnonymized ? 'yes' : 'no'} onChange={(event) => updateField('isAnonymized', event.target.value === 'yes')}>
-              <option value="yes">Да</option>
-              <option value="no">Нет</option>
-            </select>
+            <ControlWithHint hint={caseFieldHints.isAnonymized}>
+              <select value={form.isAnonymized ? 'yes' : 'no'} onChange={(event) => updateField('isAnonymized', event.target.value === 'yes')}>
+                <option value="yes">Да</option>
+                <option value="no">Нет</option>
+              </select>
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Название
-            <input value={form.title} onChange={(event) => updateField('title', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.title}>
+              <input value={form.title} onChange={(event) => updateField('title', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             Заказчик / обобщение
-            <input value={form.company} onChange={(event) => updateField('company', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.company}>
+              <input value={form.company} onChange={(event) => updateField('company', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             Регион
-            <input value={form.region} onChange={(event) => updateField('region', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.region}>
+              <input value={form.region} onChange={(event) => updateField('region', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             Отрасль
-            <select value={form.industry} onChange={(event) => updateIndustry(event.target.value)}>
-              <option value="">Выберите отрасль</option>
-              {industryOptions.map((industry) => (
-                <option key={industry} value={industry}>{industry}</option>
-              ))}
-            </select>
+            <ControlWithHint hint={caseFieldHints.industry}>
+              <select value={form.industry} onChange={(event) => updateIndustry(event.target.value)}>
+                <option value="">Выберите отрасль</option>
+                {industryOptions.map((industry) => (
+                  <option key={industry} value={industry}>{industry}</option>
+                ))}
+              </select>
+            </ControlWithHint>
           </label>
           <label>
             Подотрасль
-            <select value={form.subIndustry} onChange={(event) => updateSubIndustry(event.target.value)} disabled={!form.industry}>
-              <option value="">Выберите подотрасль</option>
-              {subIndustryOptions.map((subIndustry) => (
-                <option key={subIndustry} value={subIndustry}>{subIndustry}</option>
-              ))}
-            </select>
+            <ControlWithHint hint={caseFieldHints.subIndustry}>
+              <select value={form.subIndustry} onChange={(event) => updateSubIndustry(event.target.value)} disabled={!form.industry}>
+                <option value="">Выберите подотрасль</option>
+                {subIndustryOptions.map((subIndustry) => (
+                  <option key={subIndustry} value={subIndustry}>{subIndustry}</option>
+                ))}
+              </select>
+            </ControlWithHint>
           </label>
           <label>
             Сегмент
-            <select value={form.segment} onChange={(event) => updateField('segment', event.target.value)} disabled={!form.subIndustry}>
-              <option value="">Выберите сегмент</option>
-              {segmentOptions.map((segment) => (
-                <option key={segment} value={segment}>{segment}</option>
-              ))}
-            </select>
+            <ControlWithHint hint={caseFieldHints.segment}>
+              <select value={form.segment} onChange={(event) => updateField('segment', event.target.value)} disabled={!form.subIndustry}>
+                <option value="">Выберите сегмент</option>
+                {segmentOptions.map((segment) => (
+                  <option key={segment} value={segment}>{segment}</option>
+                ))}
+              </select>
+            </ControlWithHint>
           </label>
           <label>
             Масштаб
-            <input value={form.scale} onChange={(event) => updateField('scale', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.scale}>
+              <input value={form.scale} onChange={(event) => updateField('scale', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             Период
-            <input value={form.period} onChange={(event) => updateField('period', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.period}>
+              <input value={form.period} onChange={(event) => updateField('period', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             Решение
-            <input value={form.solution} onChange={(event) => updateField('solution', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.solution}>
+              <input value={form.solution} onChange={(event) => updateField('solution', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             Вендоры через запятую
-            <input value={form.vendorsText} onChange={(event) => updateField('vendorsText', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.vendorsText}>
+              <input value={form.vendorsText} onChange={(event) => updateField('vendorsText', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             Продукты через запятую
-            <input value={form.productsText} onChange={(event) => updateField('productsText', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.productsText}>
+              <input value={form.productsText} onChange={(event) => updateField('productsText', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             Теги через запятую
-            <input value={form.tagsText} onChange={(event) => updateField('tagsText', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.tagsText}>
+              <input value={form.tagsText} onChange={(event) => updateField('tagsText', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Описание заказчика
-            <textarea value={form.customerDescription} onChange={(event) => updateField('customerDescription', event.target.value)} rows={3} />
+            <ControlWithHint hint={caseFieldHints.customerDescription}>
+              <textarea value={form.customerDescription} onChange={(event) => updateField('customerDescription', event.target.value)} rows={3} />
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Краткое описание
-            <textarea value={form.summary} onChange={(event) => updateField('summary', event.target.value)} rows={3} />
+            <ControlWithHint hint={caseFieldHints.summary}>
+              <textarea value={form.summary} onChange={(event) => updateField('summary', event.target.value)} rows={3} />
+            </ControlWithHint>
+          </label>
+          <label className="wide-field">
+            Цели проекта
+            <ControlWithHint hint={caseFieldHints.goalsText}>
+              <textarea value={form.goalsText} onChange={(event) => updateField('goalsText', event.target.value)} rows={4} />
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Проблема / ситуация до проекта
-            <textarea value={form.problemText} onChange={(event) => updateField('problemText', event.target.value)} rows={5} />
+            <ControlWithHint hint={caseFieldHints.problemText}>
+              <textarea value={form.problemText} onChange={(event) => updateField('problemText', event.target.value)} rows={5} />
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Решение / реализация
-            <textarea value={form.implementationText} onChange={(event) => updateField('implementationText', event.target.value)} rows={5} />
+            <ControlWithHint hint={caseFieldHints.implementationText}>
+              <textarea value={form.implementationText} onChange={(event) => updateField('implementationText', event.target.value)} rows={5} />
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Масштаб проекта
-            <textarea value={form.projectScaleText} onChange={(event) => updateField('projectScaleText', event.target.value)} rows={4} />
+            <ControlWithHint hint={caseFieldHints.projectScaleText}>
+              <textarea value={form.projectScaleText} onChange={(event) => updateField('projectScaleText', event.target.value)} rows={4} />
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Результаты
-            <textarea value={form.resultsText} onChange={(event) => updateField('resultsText', event.target.value)} rows={5} />
+            <ControlWithHint hint={caseFieldHints.resultsText}>
+              <textarea value={form.resultsText} onChange={(event) => updateField('resultsText', event.target.value)} rows={5} />
+            </ControlWithHint>
           </label>
           <label>
             Технологии через запятую
-            <input value={form.technologiesText} onChange={(event) => updateField('technologiesText', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.technologiesText}>
+              <input value={form.technologiesText} onChange={(event) => updateField('technologiesText', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             Масштаб реализации
-            <input value={form.realizationScale} onChange={(event) => updateField('realizationScale', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.realizationScale}>
+              <input value={form.realizationScale} onChange={(event) => updateField('realizationScale', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Краткий результат для карточки
-            <textarea value={form.result} onChange={(event) => updateField('result', event.target.value)} rows={2} />
+            <ControlWithHint hint={caseFieldHints.result}>
+              <textarea value={form.result} onChange={(event) => updateField('result', event.target.value)} rows={2} />
+            </ControlWithHint>
           </label>
           <label>
             Источник
-            <input value={form.sourceName} onChange={(event) => updateField('sourceName', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.sourceName}>
+              <input value={form.sourceName} onChange={(event) => updateField('sourceName', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label>
             URL источника
-            <input value={form.sourceUrl} onChange={(event) => updateField('sourceUrl', event.target.value)} />
+            <ControlWithHint hint={caseFieldHints.sourceUrl}>
+              <input value={form.sourceUrl} onChange={(event) => updateField('sourceUrl', event.target.value)} />
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Связанные материалы: ID через запятую
-            <input value={form.relatedMaterialsText} onChange={(event) => updateField('relatedMaterialsText', event.target.value)} list="material-ids" />
-            <datalist id="material-ids">
-              {materials.map((material) => (
-                <option key={material.id} value={material.id}>{material.title}</option>
-              ))}
-            </datalist>
+            <ControlWithHint hint={caseFieldHints.relatedMaterialsText}>
+              <input value={form.relatedMaterialsText} onChange={(event) => updateField('relatedMaterialsText', event.target.value)} list="material-ids" />
+              <datalist id="material-ids">
+                {materials.map((material) => (
+                  <option key={material.id} value={material.id}>{material.title}</option>
+                ))}
+              </datalist>
+            </ControlWithHint>
           </label>
           <label className="wide-field">
             Приложения: название | ссылка | формат
-            <textarea value={form.attachmentsText} onChange={(event) => updateField('attachmentsText', event.target.value)} rows={3} />
+            <ControlWithHint hint={caseFieldHints.attachmentsText}>
+              <textarea value={form.attachmentsText} onChange={(event) => updateField('attachmentsText', event.target.value)} rows={3} />
+            </ControlWithHint>
           </label>
           <label className="wide-field file-field">
             <Upload size={18} />
             <span>{file ? file.name : 'Прикрепить PDF/XLSX/PPTX к кейсу'}</span>
+            <FieldHint text={caseFieldHints.file} />
             <input type="file" onChange={(event) => setFile(event.target.files?.[0] || null)} />
           </label>
         </div>
@@ -1555,6 +1654,26 @@ function AdminCases({ initialItems, materials, onLocalUpdate }) {
         {status.text && <p className={`admin-status ${status.type}`}>{status.text}</p>}
       </form>
     </div>
+  );
+}
+
+function FieldHint({ text }) {
+  return (
+    <span className="field-hint">
+      <button type="button" aria-label="Показать подсказку">
+        <HelpCircle size={16} />
+      </button>
+      <span className="field-tooltip" role="tooltip">{text}</span>
+    </span>
+  );
+}
+
+function ControlWithHint({ hint, children }) {
+  return (
+    <span className="control-with-hint">
+      {children}
+      <FieldHint text={hint} />
+    </span>
   );
 }
 

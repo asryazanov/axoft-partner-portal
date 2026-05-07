@@ -1270,6 +1270,81 @@ main {
   padding: 10px;
 }
 
+.control-with-hint {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.control-with-hint input,
+.control-with-hint select,
+.control-with-hint textarea {
+  min-width: 0;
+}
+
+.field-hint {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.field-hint > button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #cdeefa;
+  border-radius: 8px;
+  color: #075f82;
+  background: #f2fbff;
+  cursor: help;
+}
+
+.field-tooltip {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 50;
+  width: min(360px, 78vw);
+  padding: 10px 12px;
+  border: 1px solid #cdeefa;
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  box-shadow: 0 16px 34px rgba(29, 41, 79, 0.16);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.field-tooltip::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  border-right: 1px solid #cdeefa;
+  border-bottom: 1px solid #cdeefa;
+  background: #fff;
+  transform: rotate(45deg);
+}
+
+.field-hint:hover .field-tooltip,
+.field-hint:focus-within .field-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .wide-field {
   grid-column: 1 / -1;
 }
@@ -1277,6 +1352,7 @@ main {
 .file-field {
   display: flex;
   align-items: center;
+  gap: 10px;
   min-height: 48px;
   padding: 0 12px;
   border: 1px dashed #bfe7f7;
@@ -1284,6 +1360,11 @@ main {
   color: #075f82;
   background: #f5fcff;
   cursor: pointer;
+}
+
+.file-field > span:not(.field-hint) {
+  min-width: 0;
+  flex: 1;
 }
 
 .file-field input {
