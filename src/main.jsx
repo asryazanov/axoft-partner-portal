@@ -282,6 +282,26 @@ function caseModuleSource(items) {
   return `export const cases = ${JSON.stringify(items, null, 2)};\n`;
 }
 
+const materialCategoryOptions = [
+  'Промышленные решения',
+  'Кибербезопасность',
+  'Решения для бизнеса',
+  'Общие материалы',
+];
+
+const materialFieldHints = {
+  id: 'Технический ID материала для хранения в GitHub. Используйте латиницу, цифры и дефисы, например industrial-map.',
+  format: 'Формат файла или ссылки. Если загружаете файл, формат подставится автоматически по расширению.',
+  title: 'Название, которое партнёр увидит в библиотеке. Лучше коротко указать тему и тип материала.',
+  version: 'Версия, дата или период актуальности материала. Помогает партнёрам понять, что файл свежий.',
+  category: 'Выберите одну из четырёх категорий библиотеки. От неё зависит, в какой плашке появится материал.',
+  tagsText: 'Короткие теги через запятую: отрасль, продукт, сценарий, аудитория. Они участвуют в поиске.',
+  description: 'Кратко опишите, чем полезен материал и когда его стоит использовать. Достаточно 1-2 предложений.',
+  href: 'Путь к опубликованному файлу или внешняя ссылка. Для загруженных файлов используйте /assets/materials/имя-файла.',
+  file: 'Загрузите файл материала. После выбора путь и формат будут заполнены автоматически.',
+  token: 'Token нужен только для публикации изменений в GitHub. В портале он не сохраняется.',
+};
+
 const caseFieldHints = {
   id: 'Технический идентификатор кейса для хранения в GitHub. Используйте латиницу, цифры и дефисы, например mes-mining-exemes.',
   status: 'Черновик не показывается партнёрам. Опубликовано видно в разделе кейсов. Скрыто временно убирает кейс из публичного каталога.',
@@ -1148,43 +1168,65 @@ function AdminMaterials({ initialItems, onLocalUpdate, showTitle = true }) {
           <div className="admin-form-grid">
             <label>
               ID
-              <input value={form.id} onChange={(event) => updateField('id', event.target.value)} placeholder="material-id" />
+              <ControlWithHint hint={materialFieldHints.id}>
+                <input value={form.id} onChange={(event) => updateField('id', event.target.value)} placeholder="material-id" />
+              </ControlWithHint>
             </label>
             <label>
               Формат
-              <select value={form.format} onChange={(event) => updateField('format', event.target.value)}>
-                {['PDF', 'PPTX', 'DOCX', 'XLSX', 'ZIP', 'LINK'].map((format) => (
-                  <option key={format} value={format}>{format}</option>
-                ))}
-              </select>
+              <ControlWithHint hint={materialFieldHints.format}>
+                <select value={form.format} onChange={(event) => updateField('format', event.target.value)}>
+                  {['PDF', 'PPTX', 'DOCX', 'XLSX', 'ZIP', 'LINK'].map((format) => (
+                    <option key={format} value={format}>{format}</option>
+                  ))}
+                </select>
+              </ControlWithHint>
             </label>
             <label>
               Название
-              <input value={form.title} onChange={(event) => updateField('title', event.target.value)} />
+              <ControlWithHint hint={materialFieldHints.title}>
+                <input value={form.title} onChange={(event) => updateField('title', event.target.value)} />
+              </ControlWithHint>
             </label>
             <label>
               Версия
-              <input value={form.version} onChange={(event) => updateField('version', event.target.value)} />
+              <ControlWithHint hint={materialFieldHints.version}>
+                <input value={form.version} onChange={(event) => updateField('version', event.target.value)} />
+              </ControlWithHint>
             </label>
             <label>
               Категория
-              <input value={form.category} onChange={(event) => updateField('category', event.target.value)} />
+              <ControlWithHint hint={materialFieldHints.category}>
+                <select value={form.category} onChange={(event) => updateField('category', event.target.value)}>
+                  <option value="">Выберите категорию</option>
+                  {materialCategoryOptions.map((category) => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </ControlWithHint>
             </label>
             <label>
               Теги через запятую
-              <input value={form.tagsText} onChange={(event) => updateField('tagsText', event.target.value)} />
+              <ControlWithHint hint={materialFieldHints.tagsText}>
+                <input value={form.tagsText} onChange={(event) => updateField('tagsText', event.target.value)} />
+              </ControlWithHint>
             </label>
             <label className="wide-field">
               Описание
-              <textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} rows={4} />
+              <ControlWithHint hint={materialFieldHints.description}>
+                <textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} rows={4} />
+              </ControlWithHint>
             </label>
             <label className="wide-field">
               Ссылка на файл
-              <input value={form.href} onChange={(event) => updateField('href', event.target.value)} placeholder="/assets/materials/file.pdf" />
+              <ControlWithHint hint={materialFieldHints.href}>
+                <input value={form.href} onChange={(event) => updateField('href', event.target.value)} placeholder="/assets/materials/file.pdf" />
+              </ControlWithHint>
             </label>
             <label className="wide-field file-field">
               <Upload size={18} />
               <span>{file ? file.name : 'Загрузить новый файл материала'}</span>
+              <FieldHint text={materialFieldHints.file} />
               <input
                 type="file"
                 onChange={(event) => {
@@ -1202,7 +1244,9 @@ function AdminMaterials({ initialItems, onLocalUpdate, showTitle = true }) {
           <div className="github-box">
             <label>
               GitHub token
-              <input value={token} onChange={(event) => setToken(event.target.value)} type="password" placeholder="Fine-grained token: Contents read/write" />
+              <ControlWithHint hint={materialFieldHints.token}>
+                <input value={token} onChange={(event) => setToken(event.target.value)} type="password" placeholder="Fine-grained token: Contents read/write" />
+              </ControlWithHint>
             </label>
             <div className="admin-actions">
               <button type="submit" className="secondary-admin-button">
