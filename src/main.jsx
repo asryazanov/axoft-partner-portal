@@ -77,11 +77,11 @@ const demoUsers = [
 ];
 
 const baseNav = [
+  { id: 'overview', label: 'Обзор', icon: Layers3 },
   { id: 'matrix', label: 'Матрица решений', icon: BarChart3 },
   { id: 'map', label: 'Карта направлений', icon: Map },
   { id: 'library', label: 'Материалы', icon: BookOpen },
   { id: 'cases', label: 'Кейсы', icon: BriefcaseBusiness },
-  { id: 'overview', label: 'Обзор', icon: Layers3 },
 ];
 const adminNav = { id: 'admin', label: 'Админка', icon: Github };
 
