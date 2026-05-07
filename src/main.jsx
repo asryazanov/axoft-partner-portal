@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import { matrix } from './data/matrix.generated.js';
 import { materials as initialMaterials } from './data/materials.js';
-import { cases } from './data/cases.js';
+import { cases as initialCases } from './data/cases.js';
 import './styles.css';
 
 const base = import.meta.env.BASE_URL;
@@ -45,7 +45,9 @@ const githubConfig = {
   repo: 'axoft-partner-portal',
   branch: 'main',
   materialsPath: 'src/data/materials.js',
+  casesPath: 'src/data/cases.js',
   assetsPath: 'public/assets/materials',
+  caseAssetsPath: 'public/assets/cases',
 };
 
 const demoUsers = [
@@ -163,6 +165,122 @@ function materialModuleSource(items) {
   return `export const materials = ${JSON.stringify(items, null, 2)};\n`;
 }
 
+function emptyCase() {
+  return {
+    id: '',
+    title: '',
+    company: '',
+    customerDescription: '',
+    region: '',
+    scale: '',
+    period: '',
+    direction: '',
+    industry: '',
+    subIndustry: '',
+    segment: '',
+    solution: '',
+    vendorsText: '',
+    productsText: '',
+    tagsText: '',
+    status: 'draft',
+    confidentiality: 'nda',
+    isAnonymized: true,
+    sourceName: '',
+    sourceUrl: '',
+    summary: '',
+    goalsText: '',
+    problemText: '',
+    implementationText: '',
+    technologiesText: '',
+    projectScaleText: '',
+    resultsText: '',
+    metrics: '',
+    duration: '',
+    realizationScale: '',
+    vendorNote: '',
+    relatedMaterialsText: '',
+    attachmentsText: '',
+    result: '',
+  };
+}
+
+function splitLines(value) {
+  return value
+    .split(/\n|;/)
+    .map((item) => item.trim().replace(/^[-•]\s*/, ''))
+    .filter(Boolean);
+}
+
+function splitComma(value) {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function caseToForm(item) {
+  return {
+    ...item,
+    vendorsText: (item.vendors || []).join(', '),
+    productsText: (item.products || []).join(', '),
+    tagsText: (item.tags || []).join(', '),
+    goalsText: (item.goals || []).join('\n'),
+    problemText: (item.problem || []).join('\n'),
+    implementationText: (item.implementation || []).join('\n'),
+    technologiesText: (item.technologies || []).join(', '),
+    projectScaleText: (item.projectScale || []).join('\n'),
+    resultsText: (item.results || []).join('\n'),
+    relatedMaterialsText: (item.relatedMaterials || []).join(', '),
+    attachmentsText: (item.attachments || []).map((attachment) => [attachment.title, attachment.href, attachment.format].filter(Boolean).join(' | ')).join('\n'),
+  };
+}
+
+function normalizeCase(form) {
+  return {
+    id: String(form.id).trim(),
+    title: form.title.trim(),
+    company: form.company.trim(),
+    customerDescription: form.customerDescription.trim(),
+    region: form.region.trim(),
+    scale: form.scale.trim(),
+    period: form.period.trim(),
+    direction: form.direction.trim(),
+    industry: form.industry.trim(),
+    subIndustry: form.subIndustry.trim(),
+    segment: form.segment.trim(),
+    solution: form.solution.trim(),
+    vendors: splitComma(form.vendorsText),
+    products: splitComma(form.productsText),
+    tags: splitComma(form.tagsText),
+    status: form.status,
+    confidentiality: form.confidentiality,
+    isAnonymized: Boolean(form.isAnonymized),
+    sourceName: form.sourceName.trim(),
+    sourceUrl: form.sourceUrl.trim(),
+    summary: form.summary.trim(),
+    goals: splitLines(form.goalsText),
+    problem: splitLines(form.problemText),
+    implementation: splitLines(form.implementationText),
+    technologies: splitComma(form.technologiesText),
+    projectScale: splitLines(form.projectScaleText),
+    results: splitLines(form.resultsText),
+    metrics: form.metrics.trim(),
+    duration: form.duration.trim(),
+    realizationScale: form.realizationScale.trim(),
+    vendorNote: form.vendorNote.trim(),
+    relatedMaterials: splitComma(form.relatedMaterialsText),
+    attachments: splitLines(form.attachmentsText).map((line) => {
+      const [title, href, format] = line.split('|').map((part) => part.trim());
+      return { title, href, format: (format || 'LINK').toUpperCase() };
+    }),
+    result: form.result.trim(),
+  };
+}
+
+function caseModuleSource(items) {
+  return `export const cases = ${JSON.stringify(items, null, 2)};\n`;
+}
+
 function encodeBase64(text) {
   return btoa(unescape(encodeURIComponent(text)));
 }
@@ -232,13 +350,36 @@ function App() {
   const [selectedBlock, setSelectedBlock] = useState('');
   const [selectedRole, setSelectedRole] = useState('');
   const [materialCategory, setMaterialCategory] = useState('Все');
-  const [caseDirection, setCaseDirection] = useState('Все');
   const [materialStore, setMaterialStore] = useState(initialMaterials);
+  const [caseStore, setCaseStore] = useState(initialCases);
+  const [caseFilters, setCaseFilters] = useState({
+    vendor: '',
+    solution: '',
+    industry: '',
+    subIndustry: '',
+    region: '',
+    scale: '',
+    period: '',
+    tag: '',
+  });
 
   const blocks = useMemo(() => unique(matrix.map((item) => item.block)), []);
   const roles = useMemo(() => unique(matrix.map((item) => item.role)), []);
   const materialCategories = useMemo(() => ['Все', ...unique(materialStore.map((item) => item.category))], [materialStore]);
-  const caseDirections = useMemo(() => ['Все', ...unique(cases.map((item) => item.direction))], []);
+  const publishedCases = useMemo(() => caseStore.filter((item) => item.status === 'published'), [caseStore]);
+  const caseOptions = useMemo(
+    () => ({
+      vendors: unique(publishedCases.flatMap((item) => item.vendors || [])),
+      solutions: unique(publishedCases.map((item) => item.solution)),
+      industries: unique(publishedCases.map((item) => item.industry)),
+      subIndustries: unique(publishedCases.map((item) => item.subIndustry)),
+      regions: unique(publishedCases.map((item) => item.region)),
+      scales: unique(publishedCases.map((item) => item.scale)),
+      periods: unique(publishedCases.map((item) => item.period)),
+      tags: unique(publishedCases.flatMap((item) => item.tags || [])),
+    }),
+    [publishedCases],
+  );
   const nav = currentUser?.isAdmin ? [...baseNav, adminNav] : baseNav;
 
   const mapCards = useMemo(
@@ -280,13 +421,33 @@ function App() {
 
   const filteredCases = useMemo(() => {
     const needle = query.toLowerCase().trim();
-    return cases.filter((item) => {
-      if (caseDirection !== 'Все' && item.direction !== caseDirection) return false;
+    return publishedCases.filter((item) => {
+      if (caseFilters.vendor && !(item.vendors || []).includes(caseFilters.vendor)) return false;
+      if (caseFilters.solution && item.solution !== caseFilters.solution) return false;
+      if (caseFilters.industry && item.industry !== caseFilters.industry) return false;
+      if (caseFilters.subIndustry && item.subIndustry !== caseFilters.subIndustry) return false;
+      if (caseFilters.region && item.region !== caseFilters.region) return false;
+      if (caseFilters.scale && item.scale !== caseFilters.scale) return false;
+      if (caseFilters.period && item.period !== caseFilters.period) return false;
+      if (caseFilters.tag && !(item.tags || []).includes(caseFilters.tag)) return false;
       if (!needle) return true;
-      const haystack = [item.title, item.company, item.region, item.direction, item.industry, ...item.tags].join(' ').toLowerCase();
+      const haystack = [
+        item.title,
+        item.company,
+        item.region,
+        item.direction,
+        item.industry,
+        item.subIndustry,
+        item.segment,
+        item.solution,
+        item.result,
+        ...(item.vendors || []),
+        ...(item.products || []),
+        ...(item.tags || []),
+      ].join(' ').toLowerCase();
       return haystack.includes(needle);
     });
-  }, [query, caseDirection]);
+  }, [query, caseFilters, publishedCases]);
 
   function openMatrix(block = '') {
     setSelectedLevel('');
@@ -400,7 +561,7 @@ function App() {
               matrixCount={matrix.length}
               blockCount={blocks.length}
               materialCount={materialStore.length}
-              caseCount={cases.length}
+              caseCount={publishedCases.length}
               onOpenMap={() => setPage('map')}
               onOpenMatrix={() => openMatrix()}
               onOpenLibrary={() => setPage('library')}
@@ -429,13 +590,21 @@ function App() {
               materials={filteredMaterials}
             />
           )}
-          {page === 'admin' && currentUser.isAdmin && <AdminMaterials initialItems={materialStore} onLocalUpdate={setMaterialStore} />}
+          {page === 'admin' && currentUser.isAdmin && (
+            <AdminPanel
+              materials={materialStore}
+              cases={caseStore}
+              onMaterialsUpdate={setMaterialStore}
+              onCasesUpdate={setCaseStore}
+            />
+          )}
           {page === 'cases' && (
             <CasesView
-              directions={caseDirections}
-              activeDirection={caseDirection}
-              setActiveDirection={setCaseDirection}
+              options={caseOptions}
+              filters={caseFilters}
+              setFilters={setCaseFilters}
               cases={filteredCases}
+              materials={materialStore}
             />
           )}
         </main>
@@ -726,7 +895,29 @@ function MatrixView({
   );
 }
 
-function AdminMaterials({ initialItems, onLocalUpdate }) {
+function AdminPanel({ materials, cases, onMaterialsUpdate, onCasesUpdate }) {
+  const [section, setSection] = useState('materials');
+
+  return (
+    <section className="page-shell">
+      <PageTitle icon={Github} title="Админка" text="Публикуйте материалы и кейсы портала через GitHub." />
+      <div className="admin-tabs">
+        <button className={section === 'materials' ? 'active' : ''} onClick={() => setSection('materials')}>
+          <BookOpen size={16} />
+          Материалы
+        </button>
+        <button className={section === 'cases' ? 'active' : ''} onClick={() => setSection('cases')}>
+          <BriefcaseBusiness size={16} />
+          Кейсы
+        </button>
+      </div>
+      {section === 'materials' && <AdminMaterials initialItems={materials} onLocalUpdate={onMaterialsUpdate} showTitle={false} />}
+      {section === 'cases' && <AdminCases initialItems={cases} materials={materials} onLocalUpdate={onCasesUpdate} />}
+    </section>
+  );
+}
+
+function AdminMaterials({ initialItems, onLocalUpdate, showTitle = true }) {
   const [items, setItems] = useState(initialItems);
   const [form, setForm] = useState(() => emptyMaterial());
   const [selectedId, setSelectedId] = useState('');
@@ -875,7 +1066,7 @@ function AdminMaterials({ initialItems, onLocalUpdate }) {
 
   return (
     <section className="page-shell">
-      <PageTitle icon={Github} title="Админка материалов" text="Управляйте карточками материалов и публикуйте изменения в GitHub." />
+      {showTitle && <PageTitle icon={Github} title="Админка материалов" text="Управляйте карточками материалов и публикуйте изменения в GitHub." />}
       <div className="admin-grid">
         <div className="admin-list">
           <div className="admin-toolbar">
@@ -988,6 +1179,337 @@ function AdminMaterials({ initialItems, onLocalUpdate }) {
   );
 }
 
+function AdminCases({ initialItems, materials, onLocalUpdate }) {
+  const [items, setItems] = useState(initialItems);
+  const [form, setForm] = useState(() => emptyCase());
+  const [selectedId, setSelectedId] = useState('');
+  const [token, setToken] = useState('');
+  const [file, setFile] = useState(null);
+  const [status, setStatus] = useState({ type: '', text: '' });
+  const [saving, setSaving] = useState(false);
+  const isEditing = Boolean(selectedId);
+
+  function updateField(field, value) {
+    setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function selectCase(item) {
+    setSelectedId(item.id);
+    setForm(caseToForm(item));
+    setFile(null);
+    setStatus({ type: '', text: '' });
+  }
+
+  function createCase() {
+    setSelectedId('');
+    setForm(emptyCase());
+    setFile(null);
+    setStatus({ type: '', text: '' });
+  }
+
+  function validate(item) {
+    if (!item.id) return 'Заполните ID кейса.';
+    if (!item.title) return 'Заполните название кейса.';
+    if (!item.company) return 'Заполните анонимизированное описание заказчика.';
+    if (!item.industry) return 'Заполните отрасль.';
+    if (!item.solution) return 'Заполните решение.';
+    if (!item.vendors.length) return 'Добавьте хотя бы одного вендора.';
+    if (!item.result) return 'Заполните краткий результат.';
+    return '';
+  }
+
+  function upsertLocal(event) {
+    event.preventDefault();
+    const item = normalizeCase(form);
+    const error = validate(item);
+
+    if (error) {
+      setStatus({ type: 'error', text: error });
+      return null;
+    }
+
+    const next = items.some((caseItem) => caseItem.id === selectedId || caseItem.id === item.id)
+      ? items.map((caseItem) => (caseItem.id === selectedId || caseItem.id === item.id ? item : caseItem))
+      : [...items, item];
+
+    setItems(next);
+    onLocalUpdate(next);
+    setSelectedId(item.id);
+    setStatus({ type: 'success', text: 'Кейс обновлён в текущем списке. Для публикации сохраните изменения в GitHub.' });
+    return { item, next };
+  }
+
+  function removeCase(item) {
+    const next = items.filter((caseItem) => caseItem.id !== item.id);
+    setItems(next);
+    onLocalUpdate(next);
+    if (selectedId === item.id) createCase();
+    setStatus({ type: 'success', text: 'Кейс удалён из текущего списка. Для публикации сохраните изменения в GitHub.' });
+  }
+
+  async function putGithubFile(path, content, message, sha = '') {
+    return githubRequest(path, token.trim(), {
+      method: 'PUT',
+      body: JSON.stringify({
+        message,
+        content,
+        branch: githubConfig.branch,
+        ...(sha ? { sha } : {}),
+      }),
+    });
+  }
+
+  async function publishToGithub() {
+    if (!token.trim()) {
+      setStatus({ type: 'error', text: 'Вставьте GitHub token с правом Contents: read/write.' });
+      return;
+    }
+
+    setSaving(true);
+    setStatus({ type: '', text: '' });
+
+    try {
+      let item = normalizeCase(form);
+      let nextItems = items;
+      const error = validate(item);
+
+      if (!error) {
+        if (file) {
+          const fileName = slugifyFileName(file.name);
+          const assetPath = `${githubConfig.caseAssetsPath}/${fileName}`;
+          const assetSha = await getGithubSha(assetPath, token.trim());
+          await putGithubFile(assetPath, await fileToBase64(file), `Upload case material ${fileName}`, assetSha);
+          item = {
+            ...item,
+            attachments: [
+              ...item.attachments,
+              {
+                title: file.name,
+                href: `/assets/cases/${fileName}`,
+                format: fileName.split('.').pop().toUpperCase(),
+              },
+            ],
+          };
+          setForm(caseToForm(item));
+        }
+
+        nextItems = items.some((caseItem) => caseItem.id === selectedId || caseItem.id === item.id)
+          ? items.map((caseItem) => (caseItem.id === selectedId || caseItem.id === item.id ? item : caseItem))
+          : [...items, item];
+      }
+
+      const casesSha = await getGithubSha(githubConfig.casesPath, token.trim());
+      await putGithubFile(githubConfig.casesPath, encodeBase64(caseModuleSource(nextItems)), 'Update portal cases', casesSha);
+
+      setItems(nextItems);
+      onLocalUpdate(nextItems);
+      setFile(null);
+      setStatus({ type: 'success', text: 'Кейсы сохранены в GitHub. GitHub Pages обновится после завершения workflow.' });
+    } catch (error) {
+      setStatus({ type: 'error', text: error.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="admin-grid">
+      <div className="admin-list">
+        <div className="admin-toolbar">
+          <strong>Кейсы</strong>
+          <button onClick={createCase}>
+            <Plus size={16} />
+            Добавить
+          </button>
+        </div>
+        {items.map((item) => (
+          <button key={item.id} className={selectedId === item.id ? 'active' : ''} onClick={() => selectCase(item)}>
+            <span>
+              <strong>{item.title}</strong>
+              <small>{item.status} · {(item.vendors || []).join(', ') || item.solution}</small>
+            </span>
+            <Pencil size={15} />
+          </button>
+        ))}
+      </div>
+
+      <form className="admin-editor" onSubmit={upsertLocal}>
+        <div className="admin-editor-head">
+          <div>
+            <span>{isEditing ? 'Редактирование' : 'Новый кейс'}</span>
+            <h3>{form.title || 'Карточка кейса'}</h3>
+          </div>
+          {isEditing && (
+            <button type="button" className="danger-button" onClick={() => removeCase(items.find((item) => item.id === selectedId) || normalizeCase(form))}>
+              <Trash2 size={16} />
+              Удалить
+            </button>
+          )}
+        </div>
+
+        <div className="admin-form-grid">
+          <label>
+            ID
+            <input value={form.id} onChange={(event) => updateField('id', event.target.value)} placeholder="case-id" />
+          </label>
+          <label>
+            Статус
+            <select value={form.status} onChange={(event) => updateField('status', event.target.value)}>
+              <option value="draft">Черновик</option>
+              <option value="published">Опубликовано</option>
+              <option value="hidden">Скрыто</option>
+            </select>
+          </label>
+          <label>
+            Конфиденциальность
+            <select value={form.confidentiality} onChange={(event) => updateField('confidentiality', event.target.value)}>
+              <option value="public">Публичный</option>
+              <option value="nda">Закрытый под NDA</option>
+              <option value="anonymized">Анонимизированный</option>
+            </select>
+          </label>
+          <label>
+            Анонимизация
+            <select value={form.isAnonymized ? 'yes' : 'no'} onChange={(event) => updateField('isAnonymized', event.target.value === 'yes')}>
+              <option value="yes">Да</option>
+              <option value="no">Нет</option>
+            </select>
+          </label>
+          <label className="wide-field">
+            Название
+            <input value={form.title} onChange={(event) => updateField('title', event.target.value)} />
+          </label>
+          <label>
+            Заказчик / обобщение
+            <input value={form.company} onChange={(event) => updateField('company', event.target.value)} />
+          </label>
+          <label>
+            Регион
+            <input value={form.region} onChange={(event) => updateField('region', event.target.value)} />
+          </label>
+          <label>
+            Отрасль
+            <input value={form.industry} onChange={(event) => updateField('industry', event.target.value)} />
+          </label>
+          <label>
+            Подотрасль
+            <input value={form.subIndustry} onChange={(event) => updateField('subIndustry', event.target.value)} />
+          </label>
+          <label>
+            Сегмент
+            <input value={form.segment} onChange={(event) => updateField('segment', event.target.value)} />
+          </label>
+          <label>
+            Масштаб
+            <input value={form.scale} onChange={(event) => updateField('scale', event.target.value)} />
+          </label>
+          <label>
+            Период
+            <input value={form.period} onChange={(event) => updateField('period', event.target.value)} />
+          </label>
+          <label>
+            Решение
+            <input value={form.solution} onChange={(event) => updateField('solution', event.target.value)} />
+          </label>
+          <label>
+            Вендоры через запятую
+            <input value={form.vendorsText} onChange={(event) => updateField('vendorsText', event.target.value)} />
+          </label>
+          <label>
+            Продукты через запятую
+            <input value={form.productsText} onChange={(event) => updateField('productsText', event.target.value)} />
+          </label>
+          <label>
+            Теги через запятую
+            <input value={form.tagsText} onChange={(event) => updateField('tagsText', event.target.value)} />
+          </label>
+          <label className="wide-field">
+            Описание заказчика
+            <textarea value={form.customerDescription} onChange={(event) => updateField('customerDescription', event.target.value)} rows={3} />
+          </label>
+          <label className="wide-field">
+            Краткое описание
+            <textarea value={form.summary} onChange={(event) => updateField('summary', event.target.value)} rows={3} />
+          </label>
+          <label className="wide-field">
+            Проблема / ситуация до проекта
+            <textarea value={form.problemText} onChange={(event) => updateField('problemText', event.target.value)} rows={5} />
+          </label>
+          <label className="wide-field">
+            Решение / реализация
+            <textarea value={form.implementationText} onChange={(event) => updateField('implementationText', event.target.value)} rows={5} />
+          </label>
+          <label className="wide-field">
+            Масштаб проекта
+            <textarea value={form.projectScaleText} onChange={(event) => updateField('projectScaleText', event.target.value)} rows={4} />
+          </label>
+          <label className="wide-field">
+            Результаты
+            <textarea value={form.resultsText} onChange={(event) => updateField('resultsText', event.target.value)} rows={5} />
+          </label>
+          <label>
+            Технологии через запятую
+            <input value={form.technologiesText} onChange={(event) => updateField('technologiesText', event.target.value)} />
+          </label>
+          <label>
+            Масштаб реализации
+            <input value={form.realizationScale} onChange={(event) => updateField('realizationScale', event.target.value)} />
+          </label>
+          <label className="wide-field">
+            Краткий результат для карточки
+            <textarea value={form.result} onChange={(event) => updateField('result', event.target.value)} rows={2} />
+          </label>
+          <label>
+            Источник
+            <input value={form.sourceName} onChange={(event) => updateField('sourceName', event.target.value)} />
+          </label>
+          <label>
+            URL источника
+            <input value={form.sourceUrl} onChange={(event) => updateField('sourceUrl', event.target.value)} />
+          </label>
+          <label className="wide-field">
+            Связанные материалы: ID через запятую
+            <input value={form.relatedMaterialsText} onChange={(event) => updateField('relatedMaterialsText', event.target.value)} list="material-ids" />
+            <datalist id="material-ids">
+              {materials.map((material) => (
+                <option key={material.id} value={material.id}>{material.title}</option>
+              ))}
+            </datalist>
+          </label>
+          <label className="wide-field">
+            Приложения: название | ссылка | формат
+            <textarea value={form.attachmentsText} onChange={(event) => updateField('attachmentsText', event.target.value)} rows={3} />
+          </label>
+          <label className="wide-field file-field">
+            <Upload size={18} />
+            <span>{file ? file.name : 'Прикрепить PDF/XLSX/PPTX к кейсу'}</span>
+            <input type="file" onChange={(event) => setFile(event.target.files?.[0] || null)} />
+          </label>
+        </div>
+
+        <div className="github-box">
+          <label>
+            GitHub token
+            <input value={token} onChange={(event) => setToken(event.target.value)} type="password" placeholder="Fine-grained token: Contents read/write" />
+          </label>
+          <div className="admin-actions">
+            <button type="submit" className="secondary-admin-button">
+              <Save size={16} />
+              Сохранить в список
+            </button>
+            <button type="button" className="primary-admin-button" onClick={publishToGithub} disabled={saving}>
+              <Github size={16} />
+              {saving ? 'Публикация...' : 'Сохранить в GitHub'}
+            </button>
+          </div>
+        </div>
+
+        {status.text && <p className={`admin-status ${status.type}`}>{status.text}</p>}
+      </form>
+    </div>
+  );
+}
+
 function LibraryView({ categories, activeCategory, setActiveCategory, materials: visibleMaterials }) {
   return (
     <section className="page-shell">
@@ -1022,26 +1544,53 @@ function LibraryView({ categories, activeCategory, setActiveCategory, materials:
   );
 }
 
-function CasesView({ directions, activeDirection, setActiveDirection, cases: visibleCases }) {
+function CasesView({ options, filters, setFilters, cases: visibleCases, materials }) {
+  const [activeCase, setActiveCase] = useState(null);
+  const hasFilters = Object.values(filters).some(Boolean);
+
+  function updateFilter(key, value) {
+    setFilters((current) => ({ ...current, [key]: value }));
+  }
+
+  function clearFilters() {
+    setFilters({
+      vendor: '',
+      solution: '',
+      industry: '',
+      subIndustry: '',
+      region: '',
+      scale: '',
+      period: '',
+      tag: '',
+    });
+  }
+
   return (
     <section className="page-shell">
-      <PageTitle icon={BriefcaseBusiness} title="Истории успеха" text="Кейсы помогают быстро подобрать похожий сценарий и аргументы для клиента." />
-      <div className="category-row">
-        {directions.map((direction) => (
-          <button key={direction} className={activeDirection === direction ? 'active' : ''} onClick={() => setActiveDirection(direction)}>
-            {direction}
-          </button>
-        ))}
+      <PageTitle icon={BriefcaseBusiness} title="Кейсы внедрений" text="Ищите проекты по вендору, отрасли, масштабу и результату внедрения." />
+      <div className="case-filters">
+        <Select label="Вендор" value={filters.vendor} onChange={(value) => updateFilter('vendor', value)} options={['', ...options.vendors]} />
+        <Select label="Решение" value={filters.solution} onChange={(value) => updateFilter('solution', value)} options={['', ...options.solutions]} />
+        <Select label="Отрасль" value={filters.industry} onChange={(value) => updateFilter('industry', value)} options={['', ...options.industries]} />
+        <Select label="Подотрасль" value={filters.subIndustry} onChange={(value) => updateFilter('subIndustry', value)} options={['', ...options.subIndustries]} />
+        <Select label="Регион" value={filters.region} onChange={(value) => updateFilter('region', value)} options={['', ...options.regions]} />
+        <Select label="Масштаб" value={filters.scale} onChange={(value) => updateFilter('scale', value)} options={['', ...options.scales]} />
+        <Select label="Период" value={filters.period} onChange={(value) => updateFilter('period', value)} options={['', ...options.periods]} />
+        <Select label="Тег" value={filters.tag} onChange={(value) => updateFilter('tag', value)} options={['', ...options.tags]} />
+        <button className="clear-button" onClick={clearFilters} disabled={!hasFilters}>
+          <RotateCcw size={17} />
+          Сбросить фильтры
+        </button>
       </div>
       <div className="cases-list">
         {visibleCases.map((item) => (
-          <article className="case-card" key={item.id}>
+          <button className="case-card" key={item.id} onClick={() => setActiveCase(item)}>
             <div className="case-icon">
-              {item.tags.includes('ИБ') ? <ShieldCheck size={24} /> : item.tags.includes('WMS') ? <Building2 size={24} /> : <Factory size={24} />}
+              {(item.tags || []).includes('ИБ') ? <ShieldCheck size={24} /> : (item.tags || []).includes('WMS') ? <Building2 size={24} /> : <Factory size={24} />}
             </div>
             <div>
               <div className="tags">
-                {item.tags.map((tag) => (
+                {[item.solution, ...(item.vendors || []), item.industry].filter(Boolean).map((tag) => (
                   <span key={tag}>{tag}</span>
                 ))}
               </div>
@@ -1054,9 +1603,111 @@ function CasesView({ directions, activeDirection, setActiveDirection, cases: vis
                 <span>{item.period}</span>
               </div>
             </div>
-          </article>
+            <ChevronRight size={18} />
+          </button>
         ))}
+        {!visibleCases.length && <div className="empty-state">Кейсы не найдены. Попробуйте изменить фильтры или поиск.</div>}
       </div>
+      {activeCase && <CaseModal item={activeCase} materials={materials} onClose={() => setActiveCase(null)} />}
+    </section>
+  );
+}
+
+function CaseModal({ item, materials, onClose }) {
+  const related = (item.relatedMaterials || [])
+    .map((id) => materials.find((material) => material.id === id))
+    .filter(Boolean);
+
+  return (
+    <div className="modal-backdrop" role="presentation" onClick={onClose}>
+      <article className="case-modal" role="dialog" aria-modal="true" aria-label={item.title} onClick={(event) => event.stopPropagation()}>
+        <div className="case-modal-head">
+          <div>
+            <span className="case-modal-kicker">Кейс</span>
+            <h2>{item.title}</h2>
+          </div>
+          <button onClick={onClose} aria-label="Закрыть">
+            <X size={22} />
+          </button>
+        </div>
+        <div className="case-modal-body">
+          <div className="tags">
+            {[item.solution, item.industry, item.subIndustry, ...(item.vendors || [])].filter(Boolean).map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </div>
+          <div className="case-lead">
+            <h3>{item.company}</h3>
+            <div className="case-meta">
+              <span>{item.industry}</span>
+              <span>{item.region}</span>
+              <span>{item.period}</span>
+              <span>{item.scale}</span>
+            </div>
+            {item.customerDescription && <p>{item.customerDescription}</p>}
+            {item.isAnonymized && <div className="confidential-note">Кейс опубликован в анонимизированном виде</div>}
+          </div>
+          {item.summary && <CaseSection title="Краткое описание" items={[item.summary]} />}
+          <CaseSection title="Проблема" items={item.problem} />
+          <CaseSection title="Решение" items={item.implementation} />
+          <CaseSection title="Масштаб проекта" items={item.projectScale} />
+          <CaseSection title="Результаты" items={item.results} />
+          {!!(item.vendors || []).length && (
+            <section className="case-section vendor-section">
+              <h3>Вендоры</h3>
+              <div className="vendor-card">
+                <strong>{item.vendors.join(', ')}</strong>
+                {item.vendorNote && <span>{item.vendorNote}</span>}
+                {item.sourceUrl && (
+                  <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                    Смотреть публичный кейс
+                  </a>
+                )}
+              </div>
+            </section>
+          )}
+          {!!related.length && (
+            <section className="case-section related-section">
+              <h3>Связанные материалы</h3>
+              {related.map((material) => (
+                <a key={material.id} href={assetHref(material.href)} download>
+                  <Download size={16} />
+                  {material.title} ({material.format})
+                </a>
+              ))}
+            </section>
+          )}
+          {!!(item.attachments || []).length && (
+            <section className="case-section related-section">
+              <h3>Приложения</h3>
+              {item.attachments.map((attachment) => (
+                <a key={`${attachment.title}-${attachment.href}`} href={attachment.href.startsWith('http') ? attachment.href : assetHref(attachment.href)} target="_blank" rel="noreferrer">
+                  <Download size={16} />
+                  {attachment.title} ({attachment.format})
+                </a>
+              ))}
+            </section>
+          )}
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function CaseSection({ title, items }) {
+  const visibleItems = (items || []).filter(Boolean);
+  if (!visibleItems.length) return null;
+
+  return (
+    <section className="case-section">
+      <h3>{title}</h3>
+      <ul className="plain-list">
+        {visibleItems.map((item) => (
+          <li key={item}>
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
