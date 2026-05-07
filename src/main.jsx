@@ -39,6 +39,7 @@ import './styles.css';
 const base = import.meta.env.BASE_URL;
 const sessionKey = 'axoft-portal-user';
 const buildMarker = 'rollback-clean-2026-05-06';
+const supportEmail = 'partners@axoftglobal.ru';
 const githubConfig = {
   owner: 'asryazanov',
   repo: 'axoft-partner-portal',
@@ -225,7 +226,7 @@ function App() {
       return null;
     }
   });
-  const [page, setPage] = useState('matrix');
+  const [page, setPage] = useState('overview');
   const [query, setQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [selectedBlock, setSelectedBlock] = useState('');
@@ -344,7 +345,7 @@ function App() {
     <>
       <header className="app-header" data-build={buildMarker}>
         <div className="topbar">
-          <button className="brand" onClick={() => setPage('matrix')} aria-label="Открыть матрицу">
+          <button className="brand" onClick={() => setPage('overview')} aria-label="Открыть обзор">
             <img src={assetHref('/assets/brand/axoft-logo.png')} alt="Axoft" />
           </button>
           <div className="portal-title">
@@ -359,7 +360,7 @@ function App() {
               placeholder="Поиск по ролям, задачам, решениям и материалам"
             />
           </label>
-          <a className="support-button" href="mailto:partners@axoft.ru" title="Запросить помощь" aria-label="Запросить помощь">
+          <a className="support-button" href={`mailto:${supportEmail}`} title="Запросить помощь" aria-label="Запросить помощь">
             <HelpCircle size={18} />
           </a>
           <div className="user-menu" aria-label="Профиль пользователя">
@@ -386,9 +387,9 @@ function App() {
               </button>
             ))}
           </nav>
-          <a className="sidebar-help" href="mailto:partners@axoft.ru">
+          <a className="sidebar-help" href={`mailto:${supportEmail}`}>
             <Mail size={17} />
-            partners@axoft.ru
+            {supportEmail}
           </a>
         </aside>
 
