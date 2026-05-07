@@ -23,6 +23,7 @@ import {
   Sparkles,
   Target,
   UserRound,
+  X,
 } from 'lucide-react';
 import { matrix } from './data/matrix.generated.js';
 import { materials } from './data/materials.js';
@@ -484,6 +485,11 @@ function MatrixView({
   const [activeKey, setActiveKey] = useState('');
   const activeRow = rows.find((row) => `${row.block}-${row.role}` === activeKey) || rows[0];
   const hasFilters = Boolean(selectedLevel || selectedBlock || selectedRole);
+  const activeFilters = [
+    selectedLevel && { key: 'level', label: 'Уровень', value: levelLabels[selectedLevel] || selectedLevel, onClear: () => clearSingleFilter('level') },
+    selectedBlock && { key: 'block', label: 'Направление', value: selectedBlock, onClear: () => clearSingleFilter('block') },
+    selectedRole && { key: 'role', label: 'Роль клиента', value: selectedRole, onClear: () => clearSingleFilter('role') },
+  ].filter(Boolean);
 
   function chooseLevel(level) {
     setSelectedLevel(level);
@@ -511,6 +517,13 @@ function MatrixView({
     setActiveKey('');
   }
 
+  function clearSingleFilter(filter) {
+    if (filter === 'level') setSelectedLevel('');
+    if (filter === 'block') setSelectedBlock('');
+    if (filter === 'role') setSelectedRole('');
+    setActiveKey('');
+  }
+
   return (
     <section className="page-shell">
       <PageTitle
@@ -527,8 +540,24 @@ function MatrixView({
           Сбросить фильтры
         </button>
       </div>
+      {hasFilters && (
+        <div className="active-filters" aria-label="Активные фильтры">
+          {activeFilters.map((filter) => (
+            <button key={filter.key} onClick={filter.onClear} title={`Снять фильтр: ${filter.value}`}>
+              <span>{filter.label}: {filter.value}</span>
+              <X size={14} />
+            </button>
+          ))}
+        </div>
+      )}
       <div className="matrix-workspace">
         <div className="role-list" aria-label="Роли клиентов">
+          {!!rows.length && (
+            <div className="role-list-title">
+              <strong>Роли клиентов</strong>
+              <span>Выберите роль для просмотра деталей</span>
+            </div>
+          )}
           {rows.map((row) => {
             const key = `${row.block}-${row.role}`;
             const active = activeRow && key === `${activeRow.block}-${activeRow.role}`;
@@ -538,6 +567,7 @@ function MatrixView({
                 <span>
                   <strong>{row.role}</strong>
                   <small>{row.block}</small>
+                  <RolePreviewTags solutions={row.solutions} />
                 </span>
                 <ChevronRight size={16} />
               </button>
@@ -563,11 +593,7 @@ function MatrixView({
               <Column title="Что беспокоит" items={activeRow.pains} />
               <div className="detail-section solution-section">
                 <h4>Решение Axoft</h4>
-                <div className="solution-tags">
-                  {activeRow.solutions.map((solution) => (
-                    <span key={solution}>{solution}</span>
-                  ))}
-                </div>
+                <SolutionTags key={`${activeRow.block}-${activeRow.role}`} solutions={activeRow.solutions} />
               </div>
               <Column title="Бизнес-результат" items={activeRow.results} positive />
             </div>
@@ -680,6 +706,42 @@ function Select({ label, value, onChange, options, optionLabels = {} }) {
         ))}
       </select>
     </label>
+  );
+}
+
+function RolePreviewTags({ solutions }) {
+  const visible = solutions.slice(0, 3);
+  const hiddenCount = Math.max(solutions.length - visible.length, 0);
+
+  return (
+    <span className="role-preview-tags" aria-label="Краткий список решений">
+      {visible.map((solution) => (
+        <span key={solution}>{solution}</span>
+      ))}
+      {hiddenCount > 0 && <span>+{hiddenCount}</span>}
+    </span>
+  );
+}
+
+function SolutionTags({ solutions }) {
+  const [expanded, setExpanded] = useState(false);
+  const shouldCollapse = solutions.length > 5;
+  const visibleSolutions = shouldCollapse && !expanded ? solutions.slice(0, 5) : solutions;
+  const hiddenCount = solutions.length - visibleSolutions.length;
+
+  return (
+    <>
+      <div className="solution-tags">
+        {visibleSolutions.map((solution) => (
+          <span key={solution}>{solution}</span>
+        ))}
+      </div>
+      {shouldCollapse && (
+        <button className="show-more-button" onClick={() => setExpanded((value) => !value)}>
+          {expanded ? 'Скрыть' : `Показать все +${hiddenCount}`}
+        </button>
+      )}
+    </>
   );
 }
 

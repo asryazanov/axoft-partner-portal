@@ -632,6 +632,40 @@ main {
   gap: 10px;
 }
 
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: -4px;
+}
+
+.active-filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  min-height: 30px;
+  padding: 0 9px 0 11px;
+  border: 1px solid #cdeefa;
+  border-radius: 999px;
+  color: #075f82;
+  background: #f2fbff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.active-filters button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.active-filters button:hover {
+  border-color: var(--blue);
+  background: #e5f7ff;
+}
+
 .legend-pill.strategic {
   border-color: rgba(0, 174, 239, 0.34);
   color: #0477a5;
@@ -737,6 +771,26 @@ main {
   font-weight: 800;
 }
 
+.show-more-button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  margin-top: 10px;
+  padding: 0 10px;
+  border: 1px solid #cdeefa;
+  border-radius: 8px;
+  color: #075f82;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.show-more-button:hover {
+  border-color: var(--blue);
+  background: #e5f7ff;
+}
+
 .select-wrap {
   display: flex;
   flex-direction: column;
@@ -777,6 +831,24 @@ main {
   overflow: auto;
   padding: 6px;
   box-shadow: none;
+}
+
+.role-list-title {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px 6px;
+}
+
+.role-list-title strong {
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.role-list-title span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.25;
 }
 
 .role-list button {
@@ -823,6 +895,27 @@ main {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.2;
+}
+
+.role-preview-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.role-preview-tags span {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 20px;
+  padding: 0 6px;
+  border-radius: 5px;
+  color: #075f82;
+  background: #e5f7ff;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1;
 }
 
 .role-avatar {
@@ -1262,6 +1355,7 @@ main {
 
   .filters {
     display: grid;
+    grid-template-columns: 1fr;
   }
 
   .select-wrap {
@@ -1274,7 +1368,7 @@ main {
   }
 
   .matrix-detail {
-    padding: 16px;
+    padding: 0;
   }
 
   .matrix-detail h3 {
