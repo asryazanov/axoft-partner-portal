@@ -1173,14 +1173,6 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
               </div>
 
               <section className="briefing-panel">
-                <div className="briefing-head">
-                  <div>
-                    <span>Briefing первой встречи</span>
-                    <h3>Готовый сценарий для разговора с заказчиком</h3>
-                  </div>
-                  <p>{selectedPain || 'Выберите боль слева, чтобы точнее сфокусировать вопросы и рекомендации.'}</p>
-                </div>
-
                 <AdvisorCard title="Цель встречи">
                   <ul className="briefing-goals">
                     <li>Проверить актуальность выбранной боли и её бизнес-приоритет.</li>

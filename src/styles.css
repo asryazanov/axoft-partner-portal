@@ -804,38 +804,6 @@ main {
   gap: 12px;
 }
 
-.briefing-head {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: var(--shadow);
-}
-
-.briefing-head span {
-  color: var(--green);
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.briefing-head h3 {
-  margin-top: 4px;
-  color: var(--navy);
-  font-size: 22px;
-}
-
-.briefing-head p {
-  max-width: 420px;
-  color: var(--muted);
-  font-weight: 800;
-  line-height: 1.4;
-  text-align: right;
-}
-
 .briefing-goals {
   display: grid;
   gap: 8px;
@@ -2495,15 +2463,6 @@ main {
 
   .agenda-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .briefing-head {
-    display: grid;
-  }
-
-  .briefing-head p {
-    max-width: none;
-    text-align: left;
   }
 
   .hero {
