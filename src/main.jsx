@@ -1595,22 +1595,24 @@ function AdminMaterials({ initialItems, onLocalUpdate, showTitle = true }) {
                 <input value={form.href} onChange={(event) => updateField('href', event.target.value)} placeholder="/assets/materials/file.pdf" />
               </ControlWithHint>
             </label>
-            <label className="wide-field file-field">
-              <Upload size={18} />
-              <span>{file ? file.name : 'Загрузить новый файл материала'}</span>
+            <div className="wide-field file-upload-row">
+              <label className="file-field">
+                <Upload size={18} />
+                <span>{file ? file.name : 'Загрузить новый файл материала'}</span>
+                <input
+                  type="file"
+                  onChange={(event) => {
+                    const nextFile = event.target.files?.[0] || null;
+                    setFile(nextFile);
+                    if (nextFile) {
+                      updateField('href', `/assets/materials/${slugifyFileName(nextFile.name)}`);
+                      updateField('format', nextFile.name.split('.').pop().toUpperCase());
+                    }
+                  }}
+                />
+              </label>
               <FieldHint text={materialFieldHints.file} />
-              <input
-                type="file"
-                onChange={(event) => {
-                  const nextFile = event.target.files?.[0] || null;
-                  setFile(nextFile);
-                  if (nextFile) {
-                    updateField('href', `/assets/materials/${slugifyFileName(nextFile.name)}`);
-                    updateField('format', nextFile.name.split('.').pop().toUpperCase());
-                  }
-                }}
-              />
-            </label>
+            </div>
           </div>
 
           <div className="github-box">
@@ -2042,12 +2044,14 @@ function AdminCases({ initialItems, materials, onLocalUpdate }) {
               <textarea value={form.attachmentsText} onChange={(event) => updateField('attachmentsText', event.target.value)} rows={3} />
             </ControlWithHint>
           </label>
-          <label className="wide-field file-field">
-            <Upload size={18} />
-            <span>{file ? file.name : 'Прикрепить PDF/XLSX/PPTX к кейсу'}</span>
+          <div className="wide-field file-upload-row">
+            <label className="file-field">
+              <Upload size={18} />
+              <span>{file ? file.name : 'Прикрепить PDF/XLSX/PPTX к кейсу'}</span>
+              <input type="file" onChange={(event) => setFile(event.target.files?.[0] || null)} />
+            </label>
             <FieldHint text={caseFieldHints.file} />
-            <input type="file" onChange={(event) => setFile(event.target.files?.[0] || null)} />
-          </label>
+          </div>
         </div>
 
         <div className="github-box">

@@ -1685,6 +1685,13 @@ main {
   grid-column: 1 / -1;
 }
 
+.file-upload-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
 .file-field {
   display: flex;
   align-items: center;
@@ -1698,7 +1705,7 @@ main {
   cursor: pointer;
 }
 
-.file-field > span:not(.field-hint) {
+.file-field > span {
   min-width: 0;
   flex: 1;
 }
