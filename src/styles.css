@@ -510,6 +510,41 @@ main {
   line-height: 1.55;
 }
 
+.hero-steps {
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+  margin-top: 18px;
+  padding: 0;
+  list-style: none;
+  counter-reset: hero-step;
+}
+
+.hero-steps li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.hero-steps li::before {
+  counter-increment: hero-step;
+  content: counter(hero-step);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(0, 184, 132, 0.52);
+  border-radius: 8px;
+  color: #071125;
+  background: var(--green);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
