@@ -707,6 +707,54 @@ main {
   font-size: 15px;
 }
 
+.pain-tile-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.pain-tile-grid button,
+.pain-empty {
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: left;
+}
+
+.pain-tile-grid button {
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.pain-tile-grid button:hover {
+  border-color: var(--blue);
+  background: #f2fbff;
+  transform: translateY(-1px);
+}
+
+.pain-tile-grid button.active {
+  border-color: var(--blue);
+  color: #075f82;
+  background: #e8f9ff;
+  box-shadow: inset 4px 0 0 var(--blue);
+}
+
+.pain-empty {
+  display: grid;
+  align-items: center;
+  color: var(--muted);
+  background: #f8fbfd;
+}
+
 .advisor-actions {
   display: grid;
   grid-template-columns: 1fr 1fr;

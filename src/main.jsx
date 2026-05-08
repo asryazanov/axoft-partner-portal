@@ -404,7 +404,7 @@ const materialFieldHints = {
 const advisorBlockHints = {
   meetingPlan: 'Последовательность первой встречи. Используйте как agenda: проверить контекст, подтвердить боль, показать варианты и договориться о следующем шаге.',
   questions: 'Вопросы адаптируются под роль и выбранную боль. Используйте их для discovery-разговора и фиксации критериев успеха.',
-  solutions: 'Список решений из матрицы и вендоров из релевантных кейсов. Используйте как основу для обсуждения, кого подключать к следующей встрече.',
+  solutions: 'Список решений из матрицы и вендоров из релевантных кейсов. Используйте как основу для обсуждения, кого подключать к следующей встрече. Все запросы по подбору решений, вендоров и материалов направляйте в Axoft.',
   cases: 'Кейсы, близкие к выбранной роли, боли и решениям. Открывайте их на встрече или используйте как подтверждение опыта.',
   materials: 'Материалы, которые можно отправить партнёру или заказчику после разговора. Начинайте с самых релевантных промышленному сценарию.',
   roles: 'Смежные роли у заказчика. Это подсказка, кого стоит подключить, чтобы подтвердить экономику, технологию и внедрение.',
@@ -1028,17 +1028,27 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
               ))}
             </select>
           </label>
-          <label className="advisor-field">
-            <span>3. Боль / задача</span>
-            <select value={selectedPain} onChange={(event) => setSelectedPain(event.target.value)} disabled={!selectedRow}>
-              <option value="">{selectedRow ? 'Выберите боль' : 'Сначала выберите роль'}</option>
-              {painOptions.map((pain) => (
-                <option key={pain} value={pain}>
-                  {pain}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="advisor-field">
+            <span>3. Боль / задача клиента</span>
+            {selectedRow ? (
+              <div className="pain-tile-grid" role="radiogroup" aria-label="Боль или задача клиента">
+                {painOptions.map((pain) => (
+                  <button
+                    type="button"
+                    key={pain}
+                    className={selectedPain === pain ? 'active' : ''}
+                    onClick={() => setSelectedPain(pain)}
+                    role="radio"
+                    aria-checked={selectedPain === pain}
+                  >
+                    {pain}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="pain-empty">Сначала выберите роль</div>
+            )}
+          </div>
           <div className="advisor-actions">
             <button type="button" className="secondary-action" onClick={() => onOpenMatrix(selectedRow?.block || '')} disabled={!selectedRow}>
               Открыть в матрице
