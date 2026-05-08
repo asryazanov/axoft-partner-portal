@@ -1005,6 +1005,7 @@ function Overview({ user, matrixCount, blockCount, materialCount, caseCount, onO
 function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }) {
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedPain, setSelectedPain] = useState('');
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
   const [activeCase, setActiveCase] = useState(null);
   const selectedRow = rows.find((item) => item.role === selectedRole) || null;
   const painOptions = selectedRow?.pains || [];
@@ -1080,10 +1081,18 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
     ? [{ item: selectedRow, reason: advisorRoleReason(selectedRow, selectedRow) }, ...relatedRoles]
     : [];
   const discoveryQuestions = advisorQuestionsFor(selectedRow, selectedPain);
+  const visibleQuestions = showAllQuestions ? discoveryQuestions : discoveryQuestions.slice(0, 5);
+  const hiddenQuestionCount = Math.max(discoveryQuestions.length - visibleQuestions.length, 0);
 
   function chooseRole(role) {
     setSelectedRole(role);
     setSelectedPain('');
+    setShowAllQuestions(false);
+  }
+
+  function choosePain(pain) {
+    setSelectedPain(pain);
+    setShowAllQuestions(false);
   }
 
   return (
@@ -1123,7 +1132,7 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
                     type="button"
                     key={pain}
                     className={selectedPain === pain ? 'active' : ''}
-                    onClick={() => setSelectedPain(pain)}
+                    onClick={() => choosePain(pain)}
                     role="radio"
                     aria-checked={selectedPain === pain}
                   >
@@ -1155,31 +1164,67 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
           ) : (
             <>
               <div className="advisor-summary">
-                <span>Промышленность</span>
+                <span>{['Промышленность', selectedRow.role, selectedPain].filter(Boolean).join(' → ')}</span>
                 <h3>{selectedRow.role}</h3>
                 <p>{selectedPain || 'Выберите боль, чтобы точнее сфокусировать рекомендации.'}</p>
               </div>
 
-              <div className="advisor-grid">
-                <AdvisorCard title="План первой встречи" hint={advisorBlockHints.meetingPlan}>
-                  <ol className="number-list">
-                    {meetingPlan.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ol>
-                </AdvisorCard>
+              <div className="advisor-next">
+                <h3>Что сделать сейчас</h3>
+                <div>
+                  <span>1</span>
+                  <strong>Задайте первые 5 вопросов</strong>
+                  <p>Начните с блока подготовки, чтобы быстро проверить боль, бюджет, сроки и критерии успеха.</p>
+                </div>
+                <div>
+                  <span>2</span>
+                  <strong>Обсудите решения и вендоров</strong>
+                  <p>Используйте список как основу для запроса в Axoft и подключения вендорской экспертизы.</p>
+                </div>
+                <div>
+                  <span>3</span>
+                  <strong>Подкрепите разговор доказательствами</strong>
+                  <p>Откройте релевантный кейс и отправьте подходящие материалы после встречи.</p>
+                </div>
+              </div>
 
-                <AdvisorCard title="Вопросы заказчику" hint={advisorBlockHints.questions}>
-                  <ol className="advisor-question-list">
-                    {discoveryQuestions.map((item) => (
-                      <li key={item.question}>
-                        <strong>{item.question}</strong>
-                        <span>Зачем: {item.reason}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </AdvisorCard>
+              <section className="advisor-zone">
+                <div className="advisor-zone-title">
+                  <span>Подготовка встречи</span>
+                  <p>Сценарий разговора, который помогает быстро выйти на следующий шаг.</p>
+                </div>
+                <div className="advisor-grid">
+                  <AdvisorCard title="План первой встречи" hint={advisorBlockHints.meetingPlan}>
+                    <ol className="number-list">
+                      {meetingPlan.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ol>
+                  </AdvisorCard>
 
+                  <AdvisorCard title="Вопросы заказчику" hint={advisorBlockHints.questions}>
+                    <ol className="advisor-question-list">
+                      {visibleQuestions.map((item) => (
+                        <li key={item.question}>
+                          <strong>{item.question}</strong>
+                          <span>Зачем: {item.reason}</span>
+                        </li>
+                      ))}
+                    </ol>
+                    {discoveryQuestions.length > 5 && (
+                      <button type="button" className="show-more-button" onClick={() => setShowAllQuestions((current) => !current)}>
+                        {showAllQuestions ? 'Скрыть полный сценарий' : `Показать полный сценарий +${hiddenQuestionCount}`}
+                      </button>
+                    )}
+                  </AdvisorCard>
+                </div>
+              </section>
+
+              <section className="advisor-zone">
+                <div className="advisor-zone-title">
+                  <span>Что предложить</span>
+                  <p>Решения и вендоры для первичного обсуждения с заказчиком и Axoft.</p>
+                </div>
                 <AdvisorCard title="Решения и вендоры" hint={advisorBlockHints.solutions}>
                   <div className="solution-tags advisor-tags">
                     {selectedRow.solutions.map((solution) => (
@@ -1190,33 +1235,47 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
                     ))}
                   </div>
                 </AdvisorCard>
+              </section>
 
-                <AdvisorCard title="Кейсы" hint={advisorBlockHints.cases}>
-                  <div className="compact-list">
-                    {recommendedCases.length ? (
-                      recommendedCases.map((item) => (
-                        <button type="button" key={item.id} onClick={() => setActiveCase(item)}>
-                          <strong>{item.title}</strong>
-                          <span>{item.result}</span>
-                        </button>
-                      ))
-                    ) : (
-                      <p className="muted-copy">Подходящие опубликованные кейсы пока не найдены.</p>
-                    )}
-                  </div>
-                </AdvisorCard>
+              <section className="advisor-zone">
+                <div className="advisor-zone-title">
+                  <span>Чем подтвердить</span>
+                  <p>Кейсы и материалы, которые усиливают доверие после первого разговора.</p>
+                </div>
+                <div className="advisor-grid">
+                  <AdvisorCard title="Кейсы" hint={advisorBlockHints.cases}>
+                    <div className="compact-list">
+                      {recommendedCases.length ? (
+                        recommendedCases.map((item) => (
+                          <button type="button" key={item.id} onClick={() => setActiveCase(item)}>
+                            <strong>{item.title}</strong>
+                            <span>{item.result}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="muted-copy">Подходящие опубликованные кейсы пока не найдены.</p>
+                      )}
+                    </div>
+                  </AdvisorCard>
 
-                <AdvisorCard title="Материалы" hint={advisorBlockHints.materials}>
-                  <div className="advisor-links">
-                    {recommendedMaterials.map((item) => (
-                      <a key={item.id} href={assetHref(item.href)} download>
-                        <Download size={15} />
-                        <span>{item.title}</span>
-                      </a>
-                    ))}
-                  </div>
-                </AdvisorCard>
+                  <AdvisorCard title="Материалы" hint={advisorBlockHints.materials}>
+                    <div className="advisor-links">
+                      {recommendedMaterials.map((item) => (
+                        <a key={item.id} href={assetHref(item.href)} download>
+                          <Download size={15} />
+                          <span>{item.title}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </AdvisorCard>
+                </div>
+              </section>
 
+              <section className="advisor-zone">
+                <div className="advisor-zone-title">
+                  <span>Кого подключить</span>
+                  <p>Смежные роли, которые помогут подтвердить экономику, технологию и внедрение.</p>
+                </div>
                 <AdvisorCard title="Кого ещё подключить у заказчика" hint={advisorBlockHints.roles}>
                   <div className="compact-list advisor-role-list">
                     {connectedRoles.map(({ item, reason }) => (
@@ -1228,7 +1287,7 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
                     ))}
                   </div>
                 </AdvisorCard>
-              </div>
+              </section>
             </>
           )}
         </div>
