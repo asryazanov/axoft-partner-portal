@@ -639,7 +639,6 @@ main {
 
 .advisor-steps,
 .advisor-card,
-.advisor-summary,
 .empty-state {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -775,28 +774,6 @@ main {
 .advisor-results {
   display: grid;
   gap: 12px;
-}
-
-.advisor-summary {
-  padding: 16px;
-}
-
-.advisor-summary > span {
-  color: var(--green);
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.advisor-summary h3 {
-  margin-top: 4px;
-  color: var(--navy);
-  font-size: 26px;
-}
-
-.advisor-summary p {
-  margin-top: 6px;
-  color: var(--muted);
-  line-height: 1.42;
 }
 
 .briefing-panel {

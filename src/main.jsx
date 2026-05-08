@@ -1166,12 +1166,6 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
             </div>
           ) : (
             <>
-              <div className="advisor-summary">
-                <span>{['Промышленность', selectedRow.role, selectedPain].filter(Boolean).join(' → ')}</span>
-                <h3>{selectedRow.role}</h3>
-                <p>{selectedPain || 'Выберите боль, чтобы точнее сфокусировать рекомендации.'}</p>
-              </div>
-
               <section className="briefing-panel">
                 <AdvisorCard title="Цель встречи">
                   <ul className="briefing-goals">
