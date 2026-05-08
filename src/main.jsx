@@ -81,6 +81,7 @@ const demoUsers = [
 
 const baseNav = [
   { id: 'overview', label: 'Обзор', icon: Layers3 },
+  { id: 'advisor', label: 'Мастер подбора', icon: Target },
   { id: 'matrix', label: 'Матрица решений', icon: BarChart3 },
   { id: 'map', label: 'Карта направлений', icon: Map },
   { id: 'library', label: 'Материалы', icon: BookOpen },
@@ -110,6 +111,29 @@ const levelByBlock = {
 
 function unique(values) {
   return [...new Set(values.filter(Boolean))];
+}
+
+function normalizeSearchText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[()«»"']/g, ' ')
+    .replace(/ё/g, 'е')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function keywordTokens(values) {
+  return unique(
+    values
+      .flatMap((value) => normalizeSearchText(value).split(/[\s,/+-]+/))
+      .map((token) => token.trim())
+      .filter((token) => token.length > 2 && !['для', 'под', 'или', 'при', 'это', 'как'].includes(token)),
+  );
+}
+
+function matchScore(itemValues, terms) {
+  const haystack = normalizeSearchText(itemValues.flat().filter(Boolean).join(' '));
+  return terms.reduce((score, term) => score + (haystack.includes(normalizeSearchText(term)) ? 1 : 0), 0);
 }
 
 function roleInitials(role) {
@@ -631,6 +655,15 @@ function App() {
               onOpenLibrary={() => setPage('library')}
             />
           )}
+          {page === 'advisor' && (
+            <CustomerAdvisor
+              rows={matrix}
+              materials={materialStore}
+              cases={publishedCases}
+              onOpenMatrix={openMatrix}
+              onOpenLibrary={() => setPage('library')}
+            />
+          )}
           {page === 'map' && <DirectionMap cards={mapCards} onOpenMatrix={openMatrix} onOpenLevel={openMatrixByLevel} />}
           {page === 'matrix' && (
             <MatrixView
@@ -796,6 +829,242 @@ function Overview({ user, matrixCount, blockCount, materialCount, caseCount, onO
         ))}
       </div>
     </section>
+  );
+}
+
+function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }) {
+  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedPain, setSelectedPain] = useState('');
+  const [activeCase, setActiveCase] = useState(null);
+  const selectedRow = rows.find((item) => item.role === selectedRole) || null;
+  const painOptions = selectedRow?.pains || [];
+  const terms = selectedRow
+    ? keywordTokens([selectedRow.role, selectedRow.block, selectedPain, ...selectedRow.pains, ...selectedRow.solutions])
+    : [];
+  const relatedRoles = selectedRow
+    ? rows
+        .filter((item) => item.role !== selectedRow.role)
+        .map((item) => ({
+          item,
+          score:
+            (item.block === selectedRow.block ? 2 : 0) +
+            matchScore([item.role, item.block, item.pains, item.solutions], terms),
+        }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map(({ item }) => item)
+    : [];
+  const recommendedCases = selectedRow
+    ? cases
+        .map((item) => ({
+          item,
+          score: matchScore(
+            [
+              item.title,
+              item.company,
+              item.industry,
+              item.subIndustry,
+              item.segment,
+              item.solution,
+              item.direction,
+              item.result,
+              item.problem,
+              item.implementation,
+              item.vendors,
+              item.products,
+              item.tags,
+            ],
+            terms,
+          ),
+        }))
+        .filter(({ score }) => score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map(({ item }) => item)
+    : [];
+  const recommendedMaterials = selectedRow
+    ? materials
+        .map((item) => ({
+          item,
+          score: matchScore([item.title, item.description, item.category, item.tags], terms),
+        }))
+        .filter(({ score, item }) => score > 0 || item.category === 'Промышленные решения')
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 4)
+        .map(({ item }) => item)
+    : [];
+  const vendors = unique(recommendedCases.flatMap((item) => [...(item.vendors || []), ...(item.products || [])])).slice(0, 8);
+  const meetingPlan = selectedRow
+    ? [
+        `Зафиксировать контекст заказчика и роль участника: ${selectedRow.role}.`,
+        selectedPain ? `Проверить, насколько актуальна боль: ${selectedPain}.` : 'Выбрать 1-2 ключевые боли для обсуждения на встрече.',
+        'Показать релевантные решения Axoft и согласовать, какие вендоры стоит подключить.',
+        'Договориться о следующем шаге: техническая сессия, демо или сбор требований под ТЗ.',
+      ]
+    : [];
+  const discoveryQuestions = selectedRow
+    ? [
+        'Какие производственные или управленческие задачи уже запланированы на 2026-2028 годы?',
+        'Как сейчас измеряется эффект: простои, себестоимость, качество, скорость принятия решений?',
+        'Какие системы уже используются и где есть разрывы между ИТ, производством и бизнесом?',
+        'Кто влияет на выбор решения и какие критерии будут решающими?',
+        'Какой формат следующего шага будет удобнее: воркшоп, демо, аудит или пилот?',
+      ]
+    : [];
+
+  function chooseRole(role) {
+    setSelectedRole(role);
+    setSelectedPain('');
+  }
+
+  return (
+    <section className="page-shell advisor-page">
+      <PageTitle
+        icon={Target}
+        title="Мастер подбора захода"
+        text="Выберите роль и боль заказчика, чтобы быстро собрать рекомендации для первой встречи."
+      />
+
+      <div className="advisor-layout">
+        <aside className="advisor-steps">
+          <div className="advisor-step done">
+            <span>1</span>
+            <div>
+              <strong>Отрасль</strong>
+              <p>Промышленность</p>
+            </div>
+          </div>
+          <label className="advisor-field">
+            <span>2. Роль клиента</span>
+            <select value={selectedRole} onChange={(event) => chooseRole(event.target.value)}>
+              <option value="">Выберите роль</option>
+              {rows.map((item) => (
+                <option key={item.role} value={item.role}>
+                  {item.role}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="advisor-field">
+            <span>3. Боль / задача</span>
+            <select value={selectedPain} onChange={(event) => setSelectedPain(event.target.value)} disabled={!selectedRow}>
+              <option value="">{selectedRow ? 'Выберите боль' : 'Сначала выберите роль'}</option>
+              {painOptions.map((pain) => (
+                <option key={pain} value={pain}>
+                  {pain}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="advisor-actions">
+            <button type="button" className="secondary-action" onClick={() => onOpenMatrix(selectedRow?.block || '')} disabled={!selectedRow}>
+              Открыть в матрице
+            </button>
+            <button type="button" className="secondary-action" onClick={onOpenLibrary}>
+              Материалы
+            </button>
+          </div>
+        </aside>
+
+        <div className="advisor-results">
+          {!selectedRow ? (
+            <div className="empty-state">
+              <Target size={28} />
+              <h3>Начните с роли клиента</h3>
+              <p>После выбора мастер покажет подходящие решения, вендоров, материалы, кейсы и план первой встречи.</p>
+            </div>
+          ) : (
+            <>
+              <div className="advisor-summary">
+                <span>Промышленность</span>
+                <h3>{selectedRow.role}</h3>
+                <p>{selectedPain || 'Выберите боль, чтобы точнее сфокусировать рекомендации.'}</p>
+              </div>
+
+              <div className="advisor-grid">
+                <AdvisorCard title="Рекомендуемые роли">
+                  <div className="compact-list">
+                    {[selectedRow, ...relatedRoles].map((item) => (
+                      <button type="button" key={item.role} onClick={() => chooseRole(item.role)}>
+                        <strong>{item.role}</strong>
+                        <span>{item.block}</span>
+                      </button>
+                    ))}
+                  </div>
+                </AdvisorCard>
+
+                <AdvisorCard title="Решения и вендоры">
+                  <div className="solution-tags advisor-tags">
+                    {selectedRow.solutions.map((solution) => (
+                      <span key={solution}>{solution}</span>
+                    ))}
+                    {vendors.map((vendor) => (
+                      <span key={vendor}>{vendor}</span>
+                    ))}
+                  </div>
+                </AdvisorCard>
+
+                <AdvisorCard title="Материалы">
+                  <div className="advisor-links">
+                    {recommendedMaterials.map((item) => (
+                      <a key={item.id} href={assetHref(item.href)} download>
+                        <Download size={15} />
+                        <span>{item.title}</span>
+                      </a>
+                    ))}
+                  </div>
+                </AdvisorCard>
+
+                <AdvisorCard title="Кейсы">
+                  <div className="compact-list">
+                    {recommendedCases.length ? (
+                      recommendedCases.map((item) => (
+                        <button type="button" key={item.id} onClick={() => setActiveCase(item)}>
+                          <strong>{item.title}</strong>
+                          <span>{item.result}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <p className="muted-copy">Подходящие опубликованные кейсы пока не найдены.</p>
+                    )}
+                  </div>
+                </AdvisorCard>
+
+                <AdvisorCard title="План первой встречи">
+                  <ol className="number-list">
+                    {meetingPlan.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ol>
+                </AdvisorCard>
+
+                <AdvisorCard title="Вопросы заказчику">
+                  <ul className="plain-list">
+                    {discoveryQuestions.map((item) => (
+                      <li key={item}>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </AdvisorCard>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {activeCase && <CaseModal item={activeCase} materials={materials} onClose={() => setActiveCase(null)} />}
+    </section>
+  );
+}
+
+function AdvisorCard({ title, children }) {
+  return (
+    <article className="advisor-card">
+      <h3>{title}</h3>
+      {children}
+    </article>
   );
 }
 
