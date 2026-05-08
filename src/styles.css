@@ -465,15 +465,15 @@ main {
 
 .overview {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
-  gap: 22px;
-  min-height: 300px;
-  padding: 30px;
+  grid-template-columns: minmax(0, 1.55fr) minmax(220px, 0.45fr);
+  gap: 16px;
+  min-height: 0;
+  padding: 22px;
   border-radius: 14px;
   color: #fff;
   background:
@@ -485,12 +485,12 @@ main {
 .hero-copy {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .eyebrow {
-  margin-bottom: 16px;
-  padding: 7px 12px;
+  margin-bottom: 10px;
+  padding: 6px 10px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   color: rgba(255, 255, 255, 0.86);
   background: rgba(255, 255, 255, 0.09);
@@ -498,23 +498,23 @@ main {
 
 .hero h1 {
   max-width: 820px;
-  font-size: clamp(32px, 4vw, 48px);
-  line-height: 1.02;
+  font-size: clamp(28px, 3vw, 38px);
+  line-height: 1.04;
 }
 
 .hero p {
   max-width: 680px;
-  margin-top: 18px;
+  margin-top: 10px;
   color: rgba(255, 255, 255, 0.77);
-  font-size: 16px;
-  line-height: 1.55;
+  font-size: 15px;
+  line-height: 1.45;
 }
 
 .hero-steps {
   display: grid;
-  gap: 10px;
+  gap: 7px;
   max-width: 760px;
-  margin-top: 18px;
+  margin-top: 12px;
   padding: 0;
   list-style: none;
   counter-reset: hero-step;
@@ -522,12 +522,12 @@ main {
 
 .hero-steps li {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
   align-items: start;
   color: rgba(255, 255, 255, 0.84);
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.36;
 }
 
 .hero-steps li::before {
@@ -535,56 +535,62 @@ main {
   content: counter(hero-step);
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: 1px solid rgba(0, 184, 132, 0.52);
-  border-radius: 8px;
+  border-radius: 7px;
   color: #071125;
   background: var(--green);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 24px;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .hero-panel {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-  align-content: center;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-content: stretch;
 }
 
 .metric {
-  min-height: 100px;
-  padding: 18px;
+  display: flex;
+  min-height: 58px;
+  padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 10px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   background: rgba(255, 255, 255, 0.1);
 }
 
 .metric strong {
   display: block;
   color: var(--blue);
-  font-size: 34px;
+  font-size: 28px;
   line-height: 1;
 }
 
 .metric span {
   display: block;
-  margin-top: 8px;
+  margin-top: 0;
   color: rgba(255, 255, 255, 0.74);
+  font-size: 13px;
   font-weight: 700;
+  text-align: right;
 }
 
 .workflow {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .workflow-card,
@@ -599,23 +605,29 @@ main {
 }
 
 .workflow-card {
-  padding: 16px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: start;
+  padding: 12px;
 }
 
 .workflow-card svg {
+  grid-row: span 2;
   color: var(--green);
 }
 
 .workflow-card h3 {
-  margin-top: 14px;
+  margin-top: 0;
   color: var(--navy);
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .workflow-card p {
-  margin-top: 8px;
+  margin-top: 4px;
   color: var(--muted);
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.35;
 }
 
 .page-shell {
@@ -1798,6 +1810,10 @@ main {
   .matrix-workspace,
   .matrix-detail {
     min-height: 0;
+  }
+
+  .hero-panel {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .role-list {
