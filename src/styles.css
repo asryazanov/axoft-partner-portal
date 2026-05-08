@@ -862,6 +862,53 @@ main {
   background: var(--blue);
 }
 
+.agenda-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.agenda-strip span {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  border: 1px solid #cdeefa;
+  border-radius: 8px;
+  color: #075f82;
+  background: #f2fbff;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.text-toggle {
+  width: fit-content;
+  margin-top: 10px;
+  border: 0;
+  color: #075f82;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.agenda-details {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.agenda-details li::marker {
+  color: var(--blue);
+  font-weight: 900;
+}
+
 .advisor-offer-grid,
 .evidence-grid {
   display: grid;
@@ -2444,6 +2491,10 @@ main {
 
   .advisor-zone-title p {
     text-align: left;
+  }
+
+  .agenda-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .briefing-head {

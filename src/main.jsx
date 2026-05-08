@@ -1006,6 +1006,7 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedPain, setSelectedPain] = useState('');
   const [showAllQuestions, setShowAllQuestions] = useState(false);
+  const [showAgenda, setShowAgenda] = useState(false);
   const [activeCase, setActiveCase] = useState(null);
   const selectedRow = rows.find((item) => item.role === selectedRole) || null;
   const painOptions = selectedRow?.pains || [];
@@ -1088,11 +1089,13 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
     setSelectedRole(role);
     setSelectedPain('');
     setShowAllQuestions(false);
+    setShowAgenda(false);
   }
 
   function choosePain(pain) {
     setSelectedPain(pain);
     setShowAllQuestions(false);
+    setShowAgenda(false);
   }
 
   return (
@@ -1184,6 +1187,22 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
                     <li>Зафиксировать критерии успеха, сроки, бюджет и участников решения.</li>
                     <li>Согласовать следующий шаг с Axoft: воркшоп, демо, аудит, пилот или сбор требований.</li>
                   </ul>
+                  <div className="agenda-strip" aria-label="Порядок первой встречи">
+                    <span>Контекст</span>
+                    <span>Боль</span>
+                    <span>Решения</span>
+                    <span>Следующий шаг</span>
+                  </div>
+                  <button type="button" className="text-toggle" onClick={() => setShowAgenda((current) => !current)}>
+                    {showAgenda ? 'Скрыть agenda' : 'Показать agenda'}
+                  </button>
+                  {showAgenda && (
+                    <ol className="agenda-details">
+                      {meetingPlan.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ol>
+                  )}
                 </AdvisorCard>
 
                 <AdvisorCard title="Первые вопросы" hint={advisorBlockHints.questions}>
