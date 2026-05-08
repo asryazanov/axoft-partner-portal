@@ -136,6 +136,81 @@ function matchScore(itemValues, terms) {
   return terms.reduce((score, term) => score + (haystack.includes(normalizeSearchText(term)) ? 1 : 0), 0);
 }
 
+function advisorQuestionsFor(row, pain) {
+  if (!row) return [];
+  const role = normalizeSearchText(row.role);
+  const block = normalizeSearchText(row.block);
+  const roleSpecific = [];
+
+  if (role.includes('генеральный') || role.includes('ceo')) {
+    roleSpecific.push('Какие стратегические цели по производству и эффективности стоят на 2026-2028 годы?');
+    roleSpecific.push('Какой бизнес-эффект будет самым убедительным: снижение затрат, рост выпуска, управляемость или скорость решений?');
+  } else if (role.includes('производств')) {
+    roleSpecific.push('Где сейчас чаще всего теряется эффективность: простои, качество, переналадка, планирование или ручной учёт?');
+    roleSpecific.push('Какие производственные показатели важно улучшить в первую очередь: OEE, себестоимость, выпуск, брак или сроки?');
+  } else if (role.includes('техническ') || role.includes('cto')) {
+    roleSpecific.push('Какие производственные активы или ИТ-системы требуют модернизации без капитальной замены?');
+    roleSpecific.push('Какие интеграции, данные и ограничения инфраструктуры нужно учитывать при выборе решения?');
+  } else if (role.includes('качеств')) {
+    roleSpecific.push('Где возникают основные потери качества: входной контроль, производство, лаборатория, рекламации или расследования?');
+    roleSpecific.push('Какие регуляторные, сертификационные или внутренние требования нужно закрыть в первую очередь?');
+  } else if (role.includes('инженер') || block.includes('эксплуатац')) {
+    roleSpecific.push('Какие виды оборудования чаще всего дают внеплановые простои и самые дорогие ремонты?');
+    roleSpecific.push('Как сейчас планируются ТОиР, контролируется состояние оборудования и фиксируются инциденты?');
+  } else if (role.includes('финансов')) {
+    roleSpecific.push('Какие производственные затраты сейчас сложнее всего анализировать и прогнозировать?');
+    roleSpecific.push('Где требуется большая прозрачность: себестоимость, запасы, бюджет, инвестиции или закрытие периода?');
+  } else if (role.includes('логист')) {
+    roleSpecific.push('Где больше всего потерь в логистике: склад, транспорт, отгрузка, запасы или точность учёта?');
+    roleSpecific.push('Какие метрики логистики важно улучшить: скорость обработки, точность инвентаризации, загрузка транспорта или стоимость?');
+  } else if (role.includes('закуп')) {
+    roleSpecific.push('Какие категории закупок критичны для бесперебойного производства и чаще всего создают риски?');
+    roleSpecific.push('Где сейчас не хватает прозрачности: поставщики, цены, сроки, остатки, согласования или качество поставок?');
+  } else if (role.includes('персонал') || role.includes('hr')) {
+    roleSpecific.push('Какие кадровые ограничения сильнее всего влияют на производство: дефицит, текучесть, квалификация или графики?');
+    roleSpecific.push('Какие процессы HR важно автоматизировать, чтобы снизить нагрузку на бизнес-подразделения?');
+  } else if (role.includes('коммерчес')) {
+    roleSpecific.push('Какие сегменты клиентов и продуктов дают основной потенциал роста продаж?');
+    roleSpecific.push('Где теряется конверсия: лиды, расчёт КП, сопровождение сделки, прогнозирование или удержание клиентов?');
+  } else if (role.includes('проект')) {
+    roleSpecific.push('Какие проекты сейчас наиболее критичны по срокам, бюджету и прозрачности статусов?');
+    roleSpecific.push('Как принимаются решения по приоритетам портфеля и контролируются отклонения?');
+  }
+
+  const painQuestion = pain
+    ? `Насколько сейчас критична задача “${pain}” и какой измеримый результат будет считаться успехом?`
+    : 'Какая из перечисленных задач сейчас наиболее болезненна и почему именно она?';
+
+  return [
+    painQuestion,
+    ...roleSpecific,
+    'Какие системы уже используются и где есть разрывы между бизнесом, ИТ и производством?',
+    'Кто ещё должен участвовать в обсуждении, чтобы подтвердить экономику, технологию и внедрение?',
+    'Какой следующий шаг удобнее: воркшоп, демо, аудит, пилот или сбор требований под ТЗ?',
+  ].slice(0, 6);
+}
+
+function advisorRoleReason(primaryRow, relatedRow) {
+  if (!primaryRow || !relatedRow) return 'Поможет уточнить требования и подтвердить ценность решения со своей стороны.';
+  if (primaryRow.role === relatedRow.role) {
+    return 'Основной участник встречи: с него удобно начать проверку боли, приоритетов и бизнес-эффекта.';
+  }
+  if (primaryRow.block === relatedRow.block) {
+    return 'Работает в том же направлении и поможет подтвердить смежные процессы, ограничения и ожидаемый эффект.';
+  }
+
+  const role = normalizeSearchText(relatedRow.role);
+  if (role.includes('генеральный') || role.includes('ceo')) return 'Поможет закрепить стратегический приоритет и экономический эффект проекта.';
+  if (role.includes('финансов')) return 'Поможет подтвердить экономику проекта, бюджетные ограничения и финансовые KPI.';
+  if (role.includes('техническ') || role.includes('cto') || role.includes('инженер')) return 'Поможет проверить технологическую реализуемость, архитектуру и интеграционные ограничения.';
+  if (role.includes('производств')) return 'Поможет подтвердить операционную боль, производственные метрики и требования к внедрению.';
+  if (role.includes('качеств')) return 'Поможет оценить влияние решения на качество, соответствие требованиям и снижение дефектов.';
+  if (role.includes('логист')) return 'Поможет проверить влияние решения на склад, запасы, транспорт и цепочку поставок.';
+  if (role.includes('закуп')) return 'Поможет уточнить требования к поставщикам, закупочным процедурам и срокам обеспечения.';
+  if (role.includes('персонал') || role.includes('hr')) return 'Поможет оценить влияние на персонал, обучение, графики и организационные изменения.';
+  return 'Поможет расширить контекст встречи и увидеть смежные требования до подготовки предложения.';
+}
+
 function roleInitials(role) {
   return role
     .split(/[\s/()]+/)
@@ -324,6 +399,15 @@ const materialFieldHints = {
   href: 'Путь к опубликованному файлу или внешняя ссылка. Для загруженных файлов используйте /assets/materials/имя-файла.',
   file: 'Загрузите файл материала. После выбора путь и формат будут заполнены автоматически.',
   token: 'Token нужен только для публикации изменений в GitHub. В портале он не сохраняется.',
+};
+
+const advisorBlockHints = {
+  meetingPlan: 'Последовательность первой встречи. Используйте как agenda: проверить контекст, подтвердить боль, показать варианты и договориться о следующем шаге.',
+  questions: 'Вопросы адаптируются под роль и выбранную боль. Используйте их для discovery-разговора и фиксации критериев успеха.',
+  solutions: 'Список решений из матрицы и вендоров из релевантных кейсов. Используйте как основу для обсуждения, кого подключать к следующей встрече.',
+  cases: 'Кейсы, близкие к выбранной роли, боли и решениям. Открывайте их на встрече или используйте как подтверждение опыта.',
+  materials: 'Материалы, которые можно отправить партнёру или заказчику после разговора. Начинайте с самых релевантных промышленному сценарию.',
+  roles: 'Смежные роли у заказчика. Это подсказка, кого стоит подключить, чтобы подтвердить экономику, технологию и внедрение.',
 };
 
 const caseFieldHints = {
@@ -853,7 +937,10 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
         .filter(({ score }) => score > 0)
         .sort((a, b) => b.score - a.score)
         .slice(0, 3)
-        .map(({ item }) => item)
+        .map(({ item }) => ({
+          item,
+          reason: advisorRoleReason(selectedRow, item),
+        }))
     : [];
   const recommendedCases = selectedRow
     ? cases
@@ -903,15 +990,10 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
         'Договориться о следующем шаге: техническая сессия, демо или сбор требований под ТЗ.',
       ]
     : [];
-  const discoveryQuestions = selectedRow
-    ? [
-        'Какие производственные или управленческие задачи уже запланированы на 2026-2028 годы?',
-        'Как сейчас измеряется эффект: простои, себестоимость, качество, скорость принятия решений?',
-        'Какие системы уже используются и где есть разрывы между ИТ, производством и бизнесом?',
-        'Кто влияет на выбор решения и какие критерии будут решающими?',
-        'Какой формат следующего шага будет удобнее: воркшоп, демо, аудит или пилот?',
-      ]
+  const connectedRoles = selectedRow
+    ? [{ item: selectedRow, reason: advisorRoleReason(selectedRow, selectedRow) }, ...relatedRoles]
     : [];
+  const discoveryQuestions = advisorQuestionsFor(selectedRow, selectedPain);
 
   function chooseRole(role) {
     setSelectedRole(role);
@@ -983,18 +1065,25 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
               </div>
 
               <div className="advisor-grid">
-                <AdvisorCard title="Рекомендуемые роли">
-                  <div className="compact-list">
-                    {[selectedRow, ...relatedRoles].map((item) => (
-                      <button type="button" key={item.role} onClick={() => chooseRole(item.role)}>
-                        <strong>{item.role}</strong>
-                        <span>{item.block}</span>
-                      </button>
+                <AdvisorCard title="План первой встречи" hint={advisorBlockHints.meetingPlan}>
+                  <ol className="number-list">
+                    {meetingPlan.map((item) => (
+                      <li key={item}>{item}</li>
                     ))}
-                  </div>
+                  </ol>
                 </AdvisorCard>
 
-                <AdvisorCard title="Решения и вендоры">
+                <AdvisorCard title="Вопросы заказчику" hint={advisorBlockHints.questions}>
+                  <ul className="plain-list">
+                    {discoveryQuestions.map((item) => (
+                      <li key={item}>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </AdvisorCard>
+
+                <AdvisorCard title="Решения и вендоры" hint={advisorBlockHints.solutions}>
                   <div className="solution-tags advisor-tags">
                     {selectedRow.solutions.map((solution) => (
                       <span key={solution}>{solution}</span>
@@ -1005,18 +1094,7 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
                   </div>
                 </AdvisorCard>
 
-                <AdvisorCard title="Материалы">
-                  <div className="advisor-links">
-                    {recommendedMaterials.map((item) => (
-                      <a key={item.id} href={assetHref(item.href)} download>
-                        <Download size={15} />
-                        <span>{item.title}</span>
-                      </a>
-                    ))}
-                  </div>
-                </AdvisorCard>
-
-                <AdvisorCard title="Кейсы">
+                <AdvisorCard title="Кейсы" hint={advisorBlockHints.cases}>
                   <div className="compact-list">
                     {recommendedCases.length ? (
                       recommendedCases.map((item) => (
@@ -1031,22 +1109,27 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
                   </div>
                 </AdvisorCard>
 
-                <AdvisorCard title="План первой встречи">
-                  <ol className="number-list">
-                    {meetingPlan.map((item) => (
-                      <li key={item}>{item}</li>
+                <AdvisorCard title="Материалы" hint={advisorBlockHints.materials}>
+                  <div className="advisor-links">
+                    {recommendedMaterials.map((item) => (
+                      <a key={item.id} href={assetHref(item.href)} download>
+                        <Download size={15} />
+                        <span>{item.title}</span>
+                      </a>
                     ))}
-                  </ol>
+                  </div>
                 </AdvisorCard>
 
-                <AdvisorCard title="Вопросы заказчику">
-                  <ul className="plain-list">
-                    {discoveryQuestions.map((item) => (
-                      <li key={item}>
-                        <span>{item}</span>
-                      </li>
+                <AdvisorCard title="Кого ещё подключить у заказчика" hint={advisorBlockHints.roles}>
+                  <div className="compact-list advisor-role-list">
+                    {connectedRoles.map(({ item, reason }) => (
+                      <button type="button" key={item.role} onClick={() => chooseRole(item.role)}>
+                        <strong>{item.role}</strong>
+                        <span>{item.block}</span>
+                        <em>{reason}</em>
+                      </button>
                     ))}
-                  </ul>
+                  </div>
                 </AdvisorCard>
               </div>
             </>
@@ -1059,10 +1142,13 @@ function CustomerAdvisor({ rows, materials, cases, onOpenMatrix, onOpenLibrary }
   );
 }
 
-function AdvisorCard({ title, children }) {
+function AdvisorCard({ title, hint, children }) {
   return (
     <article className="advisor-card">
-      <h3>{title}</h3>
+      <div className="advisor-card-head">
+        <h3>{title}</h3>
+        {hint && <FieldHint text={hint} />}
+      </div>
       {children}
     </article>
   );

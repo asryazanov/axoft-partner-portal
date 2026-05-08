@@ -755,8 +755,20 @@ main {
   padding: 14px;
 }
 
-.advisor-card h3 {
+.advisor-card-head {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: space-between;
   margin-bottom: 10px;
+}
+
+.advisor-card-head .field-hint > button {
+  width: 32px;
+  height: 32px;
+}
+
+.advisor-card h3 {
   font-size: 16px;
 }
 
@@ -803,6 +815,14 @@ main {
 .muted-copy {
   color: var(--muted);
   font-size: 13px;
+  line-height: 1.35;
+}
+
+.advisor-role-list em {
+  color: #075f82;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
   line-height: 1.35;
 }
 
