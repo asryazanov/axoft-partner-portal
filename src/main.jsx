@@ -35,6 +35,7 @@ import { matrix } from './data/matrix.generated.js';
 import { materials as initialMaterials } from './data/materials.js';
 import { cases as initialCases } from './data/cases.js';
 import { caseIndustryDictionary } from './data/caseDictionaries.js';
+import { advisorQuestionScenarios } from './data/advisorQuestions.js';
 import './styles.css';
 
 const base = import.meta.env.BASE_URL;
@@ -138,6 +139,9 @@ function matchScore(itemValues, terms) {
 
 function advisorQuestionsFor(row, pain) {
   if (!row) return [];
+  const exactScenario = advisorQuestionScenarios[row.role]?.[pain];
+  if (exactScenario) return exactScenario;
+
   const role = normalizeSearchText(row.role);
   const block = normalizeSearchText(row.block);
   const normalizedPain = normalizeSearchText(pain);
